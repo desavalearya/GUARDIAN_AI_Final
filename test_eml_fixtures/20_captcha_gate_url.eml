@@ -1,0 +1,31 @@
+Content-Type: multipart/alternative; boundary="===============8676154768218329608=="
+MIME-Version: 1.0
+From: Billing <invoices@invoice-drop.xyz>
+To: victim@example.com
+Subject: =?utf-8?q?Invoice_ready_=E2=80=94_complete_CAPTCHA_to_view?=
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <cap-020@invoice-drop.xyz>
+MIME-Version: 1.0
+Received: from unknown (unknown [203.0.113.88]) by mx.example.com (Postfix) with ESMTP id EXT009; Fri, 28 Aug 2026 02:47:03 +0530
+Received: from mx.example.com (mx.example.com [192.0.2.20]) by inbox.example.com with ESMTP id INB001 for <victim@example.com>; Fri, 28 Aug 2026 02:47:05 +0530
+
+--===============8676154768218329608==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+VmlldyBpbnZvaWNlOiBodHRwczovL2ludm9pY2UtZHJvcC54eXovdmlldz9uZXh0PWh0dHBzOi8v
+aGNhcHRjaGEuY29tLzEvYXBpLmpz
+
+--===============8676154768218329608==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+WW91ciBjb3VyaWVyIGludm9pY2UgaXMgcmVhZHkuPC9wPjxwPjxhIGhy
+ZWY9Imh0dHBzOi8vaW52b2ljZS1kcm9wLnh5ei92aWV3P3JlZGlyPWh0dHBzJTNBJTJGJTJGd3d3
+LmhjYXB0Y2hhLmNvbSUyRjElMkZhcGkuanMiPk9wZW4gaW52b2ljZSAoQ0FQVENIQSByZXF1aXJl
+ZCk8L2E+PC9wPjxwPkFsdGVybmF0ZTogaHR0cHM6Ly9yZWNhcHRjaGEubmV0L3JlY2FwdGNoYS9h
+cGkuanM/b25sb2FkPXNob3dJbnZvaWNlPC9wPjwvYm9keT48L2h0bWw+
+
+--===============8676154768218329608==--

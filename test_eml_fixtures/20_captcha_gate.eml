@@ -1,0 +1,19 @@
+MIME-Version: 1.0
+Message-ID: <captcha-020@dhl-parcel-hold.xyz>
+Date: Sun, 15 Mar 2026 20:05:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1; Sun, 15 Mar 2026
+ 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: Courier Desk <track@dhl-parcel-hold.xyz>
+To: staff@company.example.com
+Subject: DHL: parcel on hold =?utf-8?b?4oCU?= complete human verification
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Your parcel is on hold at customs.
+Complete verification (CAPTCHA required):
+https://dhl-parcel-hold.xyz/track?next=https://hcaptcha.com
+or https://dhl-parcel-hold.xyz/unlock?recaptcha=1
+Fee INR 147. Pay after the CAPTCHA page loads.

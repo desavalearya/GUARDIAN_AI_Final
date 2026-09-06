@@ -1,0 +1,22 @@
+Received: from mail-gateway.guardian.local (mail-gateway.guardian.local [192.168.10.2])
+	by inbox.example.com with ESMTP id demo001
+Received: from unknown (unknown [167.99.140.10])
+	by mail-gateway.guardian.local with ESMTPS id demo000
+From: "HDFC Bank" <alerts@hdfc-secure-login.xyz>
+To: user@example.com
+Return-Path: bounce@hdfc-secure-login.xyz
+Reply-To: support@hdfcbank.com
+Subject: Urgent: verify your account or it will be suspended
+Date: Sun, 6 Sep 2026 08:05:00 +0530
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Dear customer,
+
+Your a/c ending 4521 will be closed. Login immediately and confirm your password.
+One-time password 839201 was sent. Click here to update billing:
+https://hdfc-secure-login.xyz/verify/account
+
+If you do not act, we will suspend the account.
+
+Customer care

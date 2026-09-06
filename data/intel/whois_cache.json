@@ -1,0 +1,23 @@
+{
+  "hdfc-secure-login.xyz": {
+    "registrar": "Namecheap (offline demo cache)",
+    "created": "2026-08-12",
+    "age_days": 25,
+    "mx": ["mail.hdfc-secure-login.xyz"],
+    "note": "Young lookalike domain — cached for SIH, not a live WHOIS query."
+  },
+  "contoso.com": {
+    "registrar": "MarkMonitor (offline demo cache)",
+    "created": "1999-05-10",
+    "age_days": 9900,
+    "mx": ["contoso-com.mail.protection.outlook.com"],
+    "note": "Long-lived corporate domain."
+  },
+  "example.com": {
+    "registrar": "RESERVED",
+    "created": "1995-08-14",
+    "age_days": 11000,
+    "mx": [],
+    "note": "IANA example domain."
+  }
+}

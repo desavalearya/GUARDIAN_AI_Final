@@ -1,0 +1,19 @@
+From: Google <no-reply@google.com>
+To: victim@example.com
+Subject: Security alert from Google
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <spoof-015@spoof-bounce.xyz>
+MIME-Version: 1.0
+Return-Path: <nobody@spoof-bounce.xyz>
+Received: from unknown (unknown [185.199.108.1]) by mx.example.com (Postfix)
+ with ESMTP id EXT009; Fri, 28 Aug 2026 02:47:03 +0530
+Received: from mx.example.com (mx.example.com [192.0.2.20]) by
+ inbox.example.com with ESMTP id INB001 for <victim@example.com>; Fri, 28 Aug
+ 2026 02:47:05 +0530
+Authentication-Results: mx.example.com; spf=fail
+ smtp.mailfrom=spoof-bounce.xyz; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+We detected a new sign-in. If this was not you, secure the account:
+https://accounts-google-security.xyz/review

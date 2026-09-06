@@ -1,0 +1,14 @@
+Authentication-Results: mail.example.com; spf=pass smtp.mailfrom=contoso.com; dkim=pass header.d=contoso.com; dmarc=pass header.from=contoso.com
+From: Contoso Finance <finance@contoso.com>
+To: user@example.com
+Subject: Process wire to new beneficiary today
+Date: Sun, 6 Sep 2026 08:20:00 +0530
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Hi,
+
+I am travelling. Please process an urgent wire transfer to the new beneficiary
+account now. Gift card backup if NEFT fails. Do this immediately.
+
+Finance

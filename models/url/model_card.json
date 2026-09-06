@@ -1,0 +1,36 @@
+{
+  "model_name": "url_model",
+  "version": "v1",
+  "framework": "xgboost+sklearn_wrapper",
+  "python": "3.12",
+  "sklearn": "1.6.1",
+  "torch": null,
+  "transformers": null,
+  "xgboost": "3.2.0",
+  "input": "url_string",
+  "output": {
+    "score_name": "p_malicious",
+    "range": [
+      0.0,
+      1.0
+    ],
+    "higher_means": "more_malicious"
+  },
+  "label_map": {
+    "0": "benign",
+    "1": "malicious"
+  },
+  "max_length": null,
+  "common_domain_cap": 0.12,
+  "load": "cd models/url/v1 && python -c \"import url_sklearn, joblib; m=joblib.load('url_pipeline.joblib'); m.model_dir='.'; print(m.predict_proba(['https://www.google.com'])[0][1])\"",
+  "eval": {
+    "precision": 0.7128,
+    "recall": 0.7168,
+    "f1": 0.7148,
+    "fpr": 0.0783,
+    "roc_auc": 0.9398,
+    "pr_auc": 0.8362,
+    "dataset": "sid321axn malicious_phish (defacement dropped) + PhiUSIIL train mix; metrics = primary val slice",
+    "note": "Known-good domains capped at 0.12 at inference. Do not use as final email decision; fusion uses url_max_score."
+  }
+}

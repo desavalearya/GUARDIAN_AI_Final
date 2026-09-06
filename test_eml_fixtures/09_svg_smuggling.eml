@@ -1,0 +1,47 @@
+Content-Type: multipart/mixed; boundary="===============3662298607932305343=="
+MIME-Version: 1.0
+MIME-Version: 1.0
+Message-ID: <svg-009@vendor-files.xyz>
+Date: Sun, 15 Mar 2026 13:10:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1;
+ Sun, 15 Mar 2026 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: Vendor Desk <docs@vendor-files.xyz>
+To: ap@company.example.com
+Subject: Signed stamp image for PO-2291
+
+--===============3662298607932305343==
+Content-Type: multipart/alternative;
+ boundary="===============8820790157703150507=="
+MIME-Version: 1.0
+
+--===============8820790157703150507==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+QXR0YWNoZWQgU1ZHIHN0YW1wIGZvciB5b3VyIHJlY29yZHMu
+
+--===============8820790157703150507==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+QXR0YWNoZWQgU1ZHIHN0YW1wIGZvciB5b3VyIHJlY29yZHMuPC9wPjwv
+Ym9keT48L2h0bWw+
+
+--===============8820790157703150507==--
+
+--===============3662298607932305343==
+Content-Type: application/svg+xml
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="invoice-stamp.svg"
+
+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0
+PSI2NCI+PHNjcmlwdD4vKiBQaGlzaFByb29mIGxhYiBmaXh0dXJlIC0gbm8gcGF5bG9hZCAqLzwv
+c2NyaXB0Pjx0ZXh0IHg9IjQiIHk9IjMyIiBmb250LXNpemU9IjEwIj5MQUI8L3RleHQ+PC9zdmc+
+
+--===============3662298607932305343==--

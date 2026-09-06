@@ -1,0 +1,24 @@
+MIME-Version: 1.0
+Message-ID: <clean-corp-001@company.example.com>
+Date: Sun, 15 Mar 2026 10:04:40 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1; Sun, 15 Mar 2026
+ 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: Priya Nair <priya.nair@company.example.com>
+To: ops@company.example.com
+Subject: Weekly standup notes =?utf-8?b?4oCU?= 15 Mar
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hi team,
+
+Notes from today's standup:
+- Deploy window is Tuesday 16:00 IST
+- Please review the Q1 capacity sheet on SharePoint
+- No action needed on vendor invoices this week
+
+Thanks,
+Priya
+Operations

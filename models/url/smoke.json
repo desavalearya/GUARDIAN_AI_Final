@@ -1,0 +1,48 @@
+{
+  "cases": [
+    {
+      "url": "https://www.google.com",
+      "p_malicious_max": 0.2
+    },
+    {
+      "url": "https://www.microsoft.com",
+      "p_malicious_max": 0.2
+    },
+    {
+      "url": "https://github.com",
+      "p_malicious_max": 0.2
+    },
+    {
+      "url": "https://amazon.com",
+      "p_malicious_max": 0.2
+    },
+    {
+      "url": "google.com",
+      "p_malicious_max": 0.2
+    },
+    {
+      "url": "https://login.microsoft.com",
+      "p_malicious_max": 0.2
+    },
+    {
+      "url": "https://verify-account-security.com/login",
+      "p_malicious_min": 0.7
+    },
+    {
+      "url": "http://paypa1-secure-login.xyz/confirm-billing-details",
+      "p_malicious_min": 0.85
+    },
+    {
+      "url": "http://192.168.1.1/login",
+      "p_malicious_min": 0.85
+    },
+    {
+      "url": "https://microsoft.com.evil.tk",
+      "p_malicious_min": 0.85
+    },
+    {
+      "url": "https://bit.ly/anything",
+      "p_malicious_min": 0.7
+    }
+  ]
+}

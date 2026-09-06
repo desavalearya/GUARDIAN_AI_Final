@@ -1,0 +1,46 @@
+Content-Type: multipart/mixed; boundary="===============5423311290665002896=="
+MIME-Version: 1.0
+MIME-Version: 1.0
+Message-ID: <pdf-019@it-refund-portal.xyz>
+Date: Sun, 15 Mar 2026 12:45:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1;
+ Sun, 15 Mar 2026 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: Income Tax <refund@it-refund-portal.xyz>
+To: employee@company.example.com
+Subject: Form 16 / refund document attached
+
+--===============5423311290665002896==
+Content-Type: multipart/alternative;
+ boundary="===============0930051393010339713=="
+MIME-Version: 1.0
+
+--===============0930051393010339713==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+WW91ciByZWZ1bmQgZG9jdW1lbnQgaXMgYXR0YWNoZWQuIE9wZW4gRm9ybTE2X0FZMjAyNi5wZGYg
+dG8gY2xhaW0u
+
+--===============0930051393010339713==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+WW91ciByZWZ1bmQgZG9jdW1lbnQgaXMgYXR0YWNoZWQuPC9wPjwvYm9k
+eT48L2h0bWw+
+
+--===============0930051393010339713==--
+
+--===============5423311290665002896==
+Content-Type: application/pdf
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Form16_AY2026.pdf"
+
+JVBERi0xLjEKMSAwIG9iajw8Pj5lbmRvYmoKdHJhaWxlcjw8Pj4KJSVFT0YK
+
+--===============5423311290665002896==--

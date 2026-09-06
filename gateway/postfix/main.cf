@@ -1,0 +1,51 @@
+# Guardian Postfix — tuned via env at container start (entrypoint sed/append)
+smtpd_banner = $myhostname ESMTP Guardian Mail
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+compatibility_level = 3.6
+
+smtpd_tls_cert_file = /etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_use_tls = yes
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
+smtp_tls_loglevel = 1
+
+myhostname = mail.guardian.local
+mydomain = guardian.local
+myorigin = $mydomain
+mydestination = localhost, localhost.localdomain, $myhostname, $mydomain
+relayhost =
+mynetworks = 127.0.0.0/8 [::1]/128 172.16.0.0/12 10.0.0.0/8 192.168.0.0/16
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+inet_protocols = ipv4
+
+# Submission / relay auth from API compose
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination
+
+smtpd_relay_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    defer_unauth_destination
+
+# Guardian milter (inbound + outbound)
+smtpd_milters = inet:milter:8891
+non_smtpd_milters = inet:milter:8891
+milter_default_action = accept
+milter_protocol = 6
+
+# OpenDKIM + OpenDMARC
+milter_mail_macros = i {mail_addr} {client_addr} {client_name} {auth_authen}
+
+# Virtual local delivery into a catch mailbox file (webmail uses Postgres)
+home_mailbox = Maildir/
+virtual_alias_maps = hash:/etc/postfix/virtual
+
+# Header checks placeholder
+message_size_limit = 26214400

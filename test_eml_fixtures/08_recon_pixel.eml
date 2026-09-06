@@ -1,0 +1,39 @@
+Content-Type: multipart/mixed; boundary="===============2335909332963689494=="
+MIME-Version: 1.0
+MIME-Version: 1.0
+Message-ID: <recon-008@mailer-probe.xyz>
+Date: Sun, 15 Mar 2026 12:00:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1;
+ Sun, 15 Mar 2026 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: Campaign <track@mailer-probe.xyz>
+To: analyst@company.example.com
+Subject: Industry briefing you requested
+
+--===============2335909332963689494==
+Content-Type: multipart/alternative;
+ boundary="===============1286779304580416102=="
+MIME-Version: 1.0
+
+--===============1286779304580416102==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+UGxlYXNlIGZpbmQgdGhlIGJyaWVmaW5nIGF0dGFjaGVkIGFzIGRpc2N1c3NlZC4=
+
+--===============1286779304580416102==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+UGxlYXNlIGZpbmQgdGhlIGJyaWVmaW5nIGF0dGFjaGVkIGFzIGRpc2N1
+c3NlZC48L3A+PGltZyBzcmM9Imh0dHBzOi8vbWFpbGVyLXByb2JlLnh5ei9vcGVuP3VpZD1hYmMx
+MjN4eXomZT1hbmFseXN0IiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBhbHQ9IiIgLz48L2JvZHk+PC9o
+dG1sPg==
+
+--===============1286779304580416102==--
+
+--===============2335909332963689494==--

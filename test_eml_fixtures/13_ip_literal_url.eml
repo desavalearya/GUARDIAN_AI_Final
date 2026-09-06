@@ -1,0 +1,28 @@
+Content-Type: multipart/alternative; boundary="===============9115066313229824379=="
+MIME-Version: 1.0
+From: "PayPal Security" <service@paypal-case.xyz>
+To: victim@example.com
+Subject: PayPal: confirm unusual sign-in
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <ipurl-013@paypal-case.xyz>
+MIME-Version: 1.0
+Received: from unknown (unknown [203.0.113.77]) by mx.example.com (Postfix) with ESMTP id EXT009; Fri, 28 Aug 2026 02:47:03 +0530
+Received: from mx.example.com (mx.example.com [192.0.2.20]) by inbox.example.com with ESMTP id INB001 for <victim@example.com>; Fri, 28 Aug 2026 02:47:05 +0530
+
+--===============9115066313229824379==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+TG9naW4gcG9ydGFsIG1vdmVkOiBodHRwOi8vMjAzLjAuMTEzLjc3L3BheXBhbC9sb2dpbg==
+
+--===============9115066313229824379==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+TG9naW4gcG9ydGFsIG1vdmVkOiA8YSBocmVmPSJodHRwOi8vMjAzLjAu
+MTEzLjc3L3BheXBhbC9sb2dpbiI+aHR0cDovLzIwMy4wLjExMy43Ny9wYXlwYWwvbG9naW48L2E+
+PC9wPjwvYm9keT48L2h0bWw+
+
+--===============9115066313229824379==--

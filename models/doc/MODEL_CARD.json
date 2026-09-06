@@ -1,0 +1,35 @@
+{
+  "model_name": "Office Document Malware Detector",
+  "model_type": "XGBoost",
+  "version": "v1",
+  "dataset": "Zenodo Office Malware (2 CSV files)",
+  "training_date": "2026-08-26T10:25:44.903699",
+  "metrics": {
+    "roc_auc": 0.9918150642032283,
+    "test_accuracy": 0.8343609865470852,
+    "false_positive_rate": 0.043875685557586835
+  },
+  "dataset_info": {
+    "total_samples": 17840,
+    "training_samples": 14272,
+    "test_samples": 3568,
+    "malicious_ratio": 0.8466928251121076,
+    "features_count": 40
+  },
+  "top_10_features": [
+    " autoopen",
+    " shell",
+    " document_open",
+    " showwindow",
+    " auto_open",
+    " createobject",
+    "base64 strings",
+    " callbyname",
+    " chrb",
+    " vbhide"
+  ],
+  "usage": {
+    "threshold": 0.7,
+    "note": "Score > 0.7 = likely malicious Office document"
+  }
+}

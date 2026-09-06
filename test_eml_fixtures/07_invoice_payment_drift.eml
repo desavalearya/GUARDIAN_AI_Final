@@ -1,0 +1,30 @@
+From: Accounts <billing@northwind-supplies.example.com>
+To: ap@acme-corp.example.com
+Subject: Invoice INV-8842 =?utf-8?b?4oCU?= updated bank details (pay today)
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <inv-007@northwind-supplies.example.com>
+MIME-Version: 1.0
+Received: from smtp.acme-corp.example.com (smtp.acme-corp.example.com
+ [192.0.2.11]) by mail.acme-corp.example.com with ESMTP id DEF456; Fri, 28 Aug
+ 2026 10:14:58 +0530
+Received: from mail.acme-corp.example.com (mail.acme-corp.example.com
+ [192.0.2.10]) by mx.example.com (Postfix) with ESMTPS id ABC123 for
+ <finance@example.com>; Fri, 28 Aug 2026 10:15:00 +0530
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Dear AP Team,
+
+Please process invoice INV-8842 for INR 4,20,000 today.
+UPDATED beneficiary (ignore previous HDFC details on file):
+  Account name: Northwind Supplies Pvt Ltd
+  Account number: 778899001122
+  IFSC: KKBK0004321
+  Bank: Kotak Mahindra Bank, BKC
+
+Prior invoices used HDFC 445566778899 / HDFC0001234 =E2=80=94 that account is=
+ closed.
+Kindly do not call; we are travelling.
+
+Regards,
+Northwind Accounts

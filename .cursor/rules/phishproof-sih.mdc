@@ -1,0 +1,15 @@
+---
+description: PhishProof SIH build rules for this repo
+alwaysApply: true
+---
+
+# PhishProof SIH
+
+- Product spec: `PHISHPROOF_COMPLETE_FINAL.md`. Operating plan: `PHISHPROOF_SIH_PLAN.md`.
+- Extend this repo only. Do not start a second FastAPI/milter/dashboard.
+- Fusion = evidence consistency / variance. Never “94% probability malicious.” Origin = probable originating infrastructure, never attacker city/IP.
+- Device-code / TOAD = heuristics. OAuth / AiTM = mock, do not pitch as live.
+- Analyse full mail in RAM. Persist tokens and scores. Never store OTP / last-4 / PAN in Postgres or reports.
+- URL: ignore `models/url/` until a new artifact is provided. Use regex/lookalike/shortener heuristics until then.
+- Use PDF v3 (`models/PDF_v3`), not deleted v1. Park ClamAV, YARA, trained XGBoost fusion, DLP, Nginx, SIEM for after SIH.
+- Avoid `docker compose up --build` unless requirements/Dockerfile change.

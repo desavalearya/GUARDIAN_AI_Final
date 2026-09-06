@@ -1,0 +1,41 @@
+Content-Type: multipart/mixed; boundary="===============0826891492958983993=="
+MIME-Version: 1.0
+MIME-Version: 1.0
+Message-ID: <bank-last4-002@sbi-alerts.xyz>
+Date: Sun, 15 Mar 2026 02:11:09 +0530
+Received: from mx.company.example.com (mx.company.example.com [192.0.2.10]) by
+ inbox.company.example.com; Sun, 15 Mar 2026 02:11:20 +0530
+Received: from unknown (unknown [203.0.113.88]) by mx.company.example.com;
+ Sun, 15 Mar 2026 02:11:12 +0530
+From: SBI Bank Security <secure@sbi-alerts.xyz>
+To: victim@company.example.com
+Subject: Urgent: SBI account ending 4521 will be blocked
+Return-Path: <bounce@sbi-alerts.xyz>
+
+--===============0826891492958983993==
+Content-Type: multipart/alternative;
+ boundary="===============1093561005333745274=="
+MIME-Version: 1.0
+
+--===============1093561005333745274==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+RGVhciBDdXN0b21lciwKWW91ciBTQkkgYS9jIGVuZGluZyA0NTIxIGlzIGJsb2NrZWQuIFZlcmlm
+eSBub3c6Cmh0dHBzOi8vc2JpLXNlY3VyZS1reWMueHl6L2xvZ2luCk9UUCA4MzkyMDEgbWF5IGJl
+IHJlcXVlc3RlZC4gRG8gbm90IHNoYXJlIHdpdGggYW55b25lIGV4Y2VwdCB0aGlzIHBhZ2UuCg==
+
+--===============1093561005333745274==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+RGVhciBDdXN0b21lciw8L3A+PHA+WW91ciBTQkkgYS9jIGVuZGluZyA8
+Yj40NTIxPC9iPiBpcyBibG9ja2VkLiA8YSBocmVmPSJodHRwczovL3NiaS1zZWN1cmUta3ljLnh5
+ei9sb2dpbiI+VmVyaWZ5IHlvdXIgS1lDIGltbWVkaWF0ZWx5PC9hPi48L3A+PHA+SWYgYXNrZWQs
+IGVudGVyIE9UUCA4MzkyMDEgb24gdGhhdCBwYWdlIG9ubHkuPC9wPjwvYm9keT48L2h0bWw+
+
+--===============1093561005333745274==--
+
+--===============0826891492958983993==--

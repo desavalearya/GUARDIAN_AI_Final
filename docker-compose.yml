@@ -1,0 +1,167 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-guardian}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guardian}
+      POSTGRES_DB: ${POSTGRES_DB:-guardian}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guardian} -d ${POSTGRES_DB:-guardian}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - guardian
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - guardian
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "backend.entrypoint", "api"]
+    env_file:
+      - .env
+    environment:
+      POSTFIX_HOST: postfix
+      POSTFIX_SUBMISSION_PORT: "587"
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-guardian.local}
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount trained models into API container for Model Lab
+      - ./models:/app/models:ro
+      - ./data:/app/data:ro
+      # Mount source read-only so code edits apply on `docker compose restart api`
+      # instead of requiring an image rebuild.
+      - ./backend:/app/backend:ro
+      - ./gateway:/app/gateway:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - guardian
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "backend.entrypoint", "worker"]
+    env_file:
+      - .env
+    volumes:
+      # Mount trained models into worker container as well (future use)
+      - ./models:/app/models:ro
+      - ./data:/app/data:ro
+      - ./backend:/app/backend:ro
+      - ./gateway:/app/gateway:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    networks:
+      - guardian
+
+  milter:
+    build:
+      context: .
+      dockerfile: gateway/milter/Dockerfile
+    environment:
+      INGEST_URL: http://api:8000/api/v1/ingest/raw
+      INGEST_API_KEY: ${INGEST_API_KEY:-dev-ingest-key}
+      API_HEALTH: http://api:8000/health
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
+      MILTER_SOCKET: inet:8891
+    expose:
+      - "8891"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - guardian
+
+  postfix:
+    build:
+      context: .
+      dockerfile: gateway/postfix/Dockerfile
+    environment:
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.example.com}
+      DKIM_SELECTOR: ${DKIM_SELECTOR:-guardian}
+      RELAYHOST: ${RELAYHOST:-}
+      RELAY_USER: ${RELAY_USER:-}
+      RELAY_PASSWORD: ${RELAY_PASSWORD:-}
+    ports:
+      # Host 2525/2587 avoid clash with other stacks on 25/587
+      - "2525:25"
+      - "2587:587"
+    volumes:
+      - opendkim_keys:/etc/opendkim/keys
+    restart: unless-stopped
+    depends_on:
+      milter:
+        condition: service_started
+    networks:
+      - guardian
+
+  mail-client:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend/mail-client:/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    networks:
+      - guardian
+
+  dashboard:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend/dashboard:/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5174"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5174:5174"
+    depends_on:
+      - api
+    networks:
+      - guardian
+
+volumes:
+  postgres_data:
+  opendkim_keys:
+
+networks:
+  guardian:
+    driver: bridge

@@ -1,0 +1,42 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+sqlalchemy==2.0.36
+psycopg[binary]==3.2.3
+alembic==1.14.1
+celery[redis]==5.4.0
+redis==5.2.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.20
+email-validator==2.2.0
+httpx==0.28.1
+aiosmtpd==1.4.6
+dnspython==2.7.0
+pyspf==2.0.14
+dkimpy==1.1.8
+checkdmarc==5.5.0
+authres==1.2.0
+pyasyncore==1.0.4
+pyasynchat==1.0.4
+
+# ML dependencies for Model Lab
+# numpy must stay <2: pandas 2.1.4 and torch 2.1.2 are built against the numpy 1.x ABI.
+numpy==1.26.4
+scipy==1.15.3
+# scikit-learn pinned to the version the models were trained with (avoids unpickle warnings).
+scikit-learn==1.6.1
+joblib==1.4.2
+xgboost==2.0.3
+pandas==2.1.4
+torch==2.1.2
+# transformers >=4.49 / tokenizers >=0.21 required to read models/email/tokenizer.json.
+transformers==4.49.0
+tokenizers==0.21.4
+sentencepiece==0.2.0
+olefile==0.47
+PyPDF2==3.0.1
+maxminddb==2.6.3
+

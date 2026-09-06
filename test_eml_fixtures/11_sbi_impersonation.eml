@@ -1,0 +1,39 @@
+Content-Type: multipart/mixed; boundary="===============2194171026019022085=="
+MIME-Version: 1.0
+MIME-Version: 1.0
+Message-ID: <sbi-imp-011@sbi-alerts.xyz>
+Date: Sun, 15 Mar 2026 08:01:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1;
+ Sun, 15 Mar 2026 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: SBI Bank Security <support@sbi-alerts.xyz>
+To: customer@company.example.com
+Subject: SBI NetBanking: unusual login from new device
+
+--===============2194171026019022085==
+Content-Type: multipart/alternative;
+ boundary="===============8434520793093109124=="
+MIME-Version: 1.0
+
+--===============8434520793093109124==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+V2UgZGV0ZWN0ZWQgYSBsb2dpbi4gQ29uZmlybSBhdCBodHRwczovL3NiaS1hbGVydHMueHl6L3Nl
+Y3VyZQ==
+
+--===============8434520793093109124==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+U0JJIE5ldEJhbmtpbmcgYWxlcnQuPC9wPjxhIGhyZWY9Imh0dHBzOi8v
+c2JpLWFsZXJ0cy54eXovc2VjdXJlIj5Db25maXJtIGl0IHdhcyB5b3U8L2E+PC9ib2R5PjwvaHRt
+bD4=
+
+--===============8434520793093109124==--
+
+--===============2194171026019022085==--

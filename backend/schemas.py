@@ -1,0 +1,131 @@
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    role: str = Field(default="analyst", pattern="^(user|viewer|analyst|admin)$")
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: UUID
+    email: EmailStr
+    role: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PingEnqueueResponse(BaseModel):
+    task_id: str
+    status: str = "queued"
+
+
+class CeleryPingResponse(BaseModel):
+    id: UUID
+    message: str
+    task_id: str
+    triggered_by_user_id: UUID | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ComposeRequest(BaseModel):
+    recipient: EmailStr = "user@example.com"
+    subject: str
+    body: str
+
+
+class IngestRawRequest(BaseModel):
+    raw_message: str
+    direction: str = Field(default="inbound", pattern="^(inbound|outbound)$")
+    ingestion_path: str = "api"
+
+
+class DetectorOut(BaseModel):
+    detector_name: str
+    raw_score: float
+    verdict: str
+    explanation: str
+    evidence: dict
+    model_version: str
+
+
+class EmailListItem(BaseModel):
+    id: UUID
+    received_at: datetime
+    sender_address: str
+    recipient_address: str
+    subject: str
+    direction: str
+    decision: str | None = None
+    fused_risk_score: float | None = None
+    confidence_state: str | None = None
+    review_queue: str | None = None
+
+
+class EmailDetail(BaseModel):
+    id: UUID
+    received_at: datetime
+    sender_address: str
+    sender_display_name: str
+    recipient_address: str
+    subject: str
+    body_plain: str
+    direction: str
+    ingestion_path: str
+    is_duplicate: bool
+    status: str
+    urls: list[str]
+    attachments: list[str]
+    detectors: list[DetectorOut]
+    fused_risk_score: float | None = None
+    confidence_state: str | None = None
+    agreement_metric: float | None = None
+    contributing_detectors: dict = {}
+    decision: str | None = None
+    review_queue: str | None = None
+    analyst_override: bool = False
+    evidence_sha256: str = ""
+    secret_flags: dict = {}
+    hmac_token_keys: list[str] = []
+    retention_days: int = 30
+    campaign_id: UUID | None = None
+    case_ref: str | None = None
+    vault_preserved: bool = False
+    custody: list[dict] = []
+
+
+class ReviewAction(BaseModel):
+    notes: str | None = None
+
+
+class LabTextRequest(BaseModel):
+    text: str
+
+
+class LabUrlRequest(BaseModel):
+    url: str
+
+
+class LabScoreResponse(BaseModel):
+    detector_name: str
+    raw_score: float
+    verdict: str
+    explanation: str
+    evidence: dict
+    model_version: str

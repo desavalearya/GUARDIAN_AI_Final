@@ -1,0 +1,36 @@
+Content-Type: multipart/mixed; boundary="===============1848758833765756563=="
+MIME-Version: 1.0
+From: "EPFO Helpdesk" <helpdesk@epfo-kyc-update.xyz>
+To: victim@example.com
+Subject: Accepted: KYC verification meeting
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <ics-010@epfo-kyc-update.xyz>
+MIME-Version: 1.0
+Received: from unknown (unknown [203.0.113.88]) by mx.example.com (Postfix) with ESMTP id EXT009; Fri, 28 Aug 2026 02:47:03 +0530
+Received: from mx.example.com (mx.example.com [192.0.2.20]) by inbox.example.com with ESMTP id INB001 for <victim@example.com>; Fri, 28 Aug 2026 02:47:05 +0530
+
+--===============1848758833765756563==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+Q2FsZW5kYXIgaW52aXRlIGF0dGFjaGVkLiBBY2NlcHQgdG8gY29uZmlybSB0aGUgS1lDIHNsb3Qu
+Cg==
+
+--===============1848758833765756563==
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="kyc-meeting.ics"
+MIME-Version: 1.0
+Content-Type: text/calendar; method="REQUEST"
+
+QkVHSU46VkNBTEVOREFSClZFUlNJT046Mi4wClBST0RJRDotLy9QaGlzaFByb29mIExhYi8vRU4K
+QkVHSU46VkVWRU5UClVJRDpsYWItaWNzLTAwMUBwaGlzaC1pbnZpdGUueHl6CkRUU1RBTVA6MjAy
+NjA4MjhUMTAwMDAwWgpEVFNUQVJUOjIwMjYwOTAxVDA5MzAwMFoKRFRFTkQ6MjAyNjA5MDFUMTAw
+MDAwWgpTVU1NQVJZOlVyZ2VudCBLWUMgdmVyaWZpY2F0aW9uIG1lZXRpbmcKREVTQ1JJUFRJT046
+UGxlYXNlIGNvbmZpcm0geW91ciBhY2NvdW50IGhlcmU6IGh0dHBzOi8vZXBmby1reWMtdXBkYXRl
+Lnh5ei92ZXJpZnkKTE9DQVRJT046aHR0cHM6Ly9lcGZvLWt5Yy11cGRhdGUueHl6L3ZlcmlmeQpV
+Ukw6aHR0cHM6Ly9lcGZvLWt5Yy11cGRhdGUueHl6L3ZlcmlmeQpPUkdBTklaRVI7Q049RVBGTyBI
+ZWxwZGVzazptYWlsdG86aGVscGRlc2tAZXBmby1reWMtdXBkYXRlLnh5egpFTkQ6VkVWRU5UCkVO
+RDpWQ0FMRU5EQVIK
+
+--===============1848758833765756563==--

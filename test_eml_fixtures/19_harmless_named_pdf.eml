@@ -1,0 +1,31 @@
+Content-Type: multipart/mixed; boundary="===============3952997682839879784=="
+MIME-Version: 1.0
+From: HR Ops <hr-ops@acme-corp.example.com>
+To: allstaff@acme-corp.example.com
+Subject: FY26 travel policy circular (PDF)
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <pdf-019@acme-corp.example.com>
+MIME-Version: 1.0
+Received: from smtp.acme-corp.example.com (smtp.acme-corp.example.com [192.0.2.11]) by mail.acme-corp.example.com with ESMTP id DEF456; Fri, 28 Aug 2026 10:14:58 +0530
+Received: from mail.acme-corp.example.com (mail.acme-corp.example.com [192.0.2.10]) by mx.example.com (Postfix) with ESMTPS id ABC123 for <finance@example.com>; Fri, 28 Aug 2026 10:15:00 +0530
+
+--===============3952997682839879784==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+RlkyNiB0cmF2ZWwgcG9saWN5IGNpcmN1bGFyIGF0dGFjaGVkLiBObyBtYWNyb3MuIEZvciByZWNv
+cmRzIG9ubHkuCg==
+
+--===============3952997682839879784==
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Q3-policy-circular.pdf"
+MIME-Version: 1.0
+Content-Type: application/pdf
+
+JVBERi0xLjEKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBv
+Ymo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlw
+ZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgMjAwIDIwMF0+PmVuZG9iagp0cmFpbGVy
+PDwvUm9vdCAxIDAgUj4+CiUlRU9GCg==
+
+--===============3952997682839879784==--

@@ -1,0 +1,19 @@
+MIME-Version: 1.0
+Message-ID: <spf-015@outbound-unknown.xyz>
+Date: Sun, 15 Mar 2026 18:00:00 +0530
+Received: from mx.company.example.com by inbox.company.example.com; Sun, 15
+ Mar 2026 18:00:12 +0530
+Received: from unknown.host (unknown [198.51.100.77]) by
+ mx.company.example.com; Sun, 15 Mar 2026 18:00:05 +0530
+From: IT Admin <admin@company.example.com>
+To: all@company.example.com
+Subject: Mandatory: enable new MFA token today
+Return-Path: <admin@company.example.com>
+Authentication-Results: mx.company.example.com; spf=fail
+ smtp.mailfrom=company.example.com; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+All staff must register a new MFA token at https://company-mfa-reset.xyz/enro=
+ll before midnight.
+Accounts that skip this will be locked.

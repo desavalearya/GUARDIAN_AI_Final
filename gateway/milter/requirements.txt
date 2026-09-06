@@ -1,0 +1,2 @@
+pymilter==1.0.5
+httpx==0.28.1

@@ -1,0 +1,33 @@
+Content-Type: multipart/mixed; boundary="===============5727395127697814051=="
+MIME-Version: 1.0
+From: Design <assets@cdn-drop.xyz>
+To: victim@example.com
+Subject: Event badge SVG for website
+Date: Fri, 28 Aug 2026 10:15:00 +0530
+Message-ID: <svg-009@cdn-drop.xyz>
+MIME-Version: 1.0
+Received: from unknown (unknown [203.0.113.88]) by mx.example.com (Postfix) with ESMTP id EXT009; Fri, 28 Aug 2026 02:47:03 +0530
+Received: from mx.example.com (mx.example.com [192.0.2.20]) by inbox.example.com with ESMTP id INB001 for <victim@example.com>; Fri, 28 Aug 2026 02:47:05 +0530
+
+--===============5727395127697814051==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+TG9nbyBiYWRnZSBhdHRhY2hlZCBmb3IgdGhlIGV2ZW50IHdlYnNpdGUuIFBsZWFzZSBob3N0IGFz
+LWlzLgo=
+
+--===============5727395127697814051==
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="badge.svg"
+MIME-Version: 1.0
+Content-Type: image/svg+xml
+
+PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDov
+L3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCI+CiAgPHJlY3Qgd2lk
+dGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjY2NjIi8+CiAgPHNjcmlwdCB0eXBlPSJ0ZXh0L2ph
+dmFzY3JpcHQiPjwhW0NEQVRBWwogICAgLyogTEFCIE9OTFkgLSBubyBuZXR3b3JrLCBubyBwYXls
+b2FkLiBQaGlzaFByb29mIHNob3VsZCBmbGFnIDxzY3JpcHQ+IGluIFNWRy4gKi8KICAgIHZhciBf
+bGFiID0gMDsKICBdXT48L3NjcmlwdD4KPC9zdmc+Cg==
+
+--===============5727395127697814051==--

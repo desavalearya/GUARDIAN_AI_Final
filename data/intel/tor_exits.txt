@@ -1,0 +1,3 @@
+# Offline seed only. Add more exits for a demo; do not claim this is a live TOR feed.
+# TEST-NET-3 documentation address used by fixtures/demo_eml when we need a TOR class.
+203.0.113.50

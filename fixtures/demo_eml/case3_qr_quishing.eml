@@ -1,0 +1,13 @@
+From: "UPI Rewards" <rewards@upi-claim.top>
+To: user@example.com
+Subject: Scan this QR to claim your refund
+Date: Sun, 6 Sep 2026 08:10:00 +0530
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Dear customer, verify your account refund.</p>
+<img width="180" height="180" alt="https://upi-claim.top/pay/verify" src="cid:qrpng" />
+<img width="1" height="1" src="https://tracker.upi-claim.top/pixel/open?id=77" alt="" />
+<p>If the QR does not open, use the link in the image.</p>
+</body></html>

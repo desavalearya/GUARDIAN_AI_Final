@@ -1,0 +1,56 @@
+{
+  "model_name": "Guardian AI PDF Malware Detector",
+  "version": "v3-three-dataset",
+  "training_sources": [
+    "CIC-Evasive-PDFMal2022",
+    "Dataset of PDF Files",
+    "Make Data Count academic PDFs"
+  ],
+  "malicious_ground_truth": "CIC-Evasive-PDFMal2022",
+  "additional_benign_sources": [
+    "Dataset of PDF Files",
+    "Make Data Count"
+  ],
+  "feature_order": [
+    "isencrypted",
+    "embeddedfiles",
+    "images",
+    "text",
+    "header",
+    "obj",
+    "endobj",
+    "stream",
+    "endstream",
+    "xref",
+    "trailer",
+    "startxref",
+    "encrypt",
+    "objstm",
+    "js",
+    "javascript",
+    "aa",
+    "openaction",
+    "launch",
+    "acroform",
+    "xfa",
+    "jbig2decode",
+    "richmedia",
+    "embeddedfile",
+    "colors"
+  ],
+  "excluded_bias_prone_features": [
+    "MetadataSize",
+    "PdfSize",
+    "XrefLength",
+    "TitleCharacters",
+    "Pages"
+  ],
+  "calibration": "sigmoid",
+  "suspicious_threshold": 0.044693574068377435,
+  "malicious_threshold": 0.8663426788399192,
+  "internal_malicious_recall": 0.8923076923076924,
+  "internal_false_positive_rate": 0.0071090047393364926,
+  "external_academic_hard_fpr": 0.0,
+  "external_generic_hard_fpr": 0.0,
+  "decision_note": "ML score is one Guardian signal. Final production blocking should also consider YARA, ClamAV and strong structural evidence."
+}

@@ -1,0 +1,20 @@
+MIME-Version: 1.0
+Message-ID: <invoice-007@acme-supplies.example.com>
+Date: Sun, 15 Mar 2026 14:18:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1; Sun, 15 Mar 2026
+ 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: Accounts <billing@acme-supplies.example.com>
+To: ap@company.example.com
+Subject: Invoice INV-8841 =?utf-8?b?4oCU?= updated bank details
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Please process Invoice INV-8841 for INR 6,40,000.
+IMPORTANT: Our settlement account has changed.
+Old (do not use): HDFC 50200011223344 IFSC HDFC0001234
+New payee: Acme Supplies Pvt Ltd
+Account: 991100228833 IFSC YESB0009999 Bank: Yes Bank, BKC
+Kindly complete NEFT today to avoid delay charges.

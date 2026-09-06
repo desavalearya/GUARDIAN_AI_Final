@@ -1,0 +1,21 @@
+{
+  "senders": {
+    "finance@contoso.com": {
+      "label": "Contoso finance mailbox (pre-seeded)",
+      "tokens": [
+        "weekly",
+        "standup",
+        "report",
+        "shared",
+        "drive",
+        "invoice",
+        "facilities",
+        "please",
+        "review",
+        "section",
+        "thanks",
+        "team"
+      ]
+    }
+  }
+}
