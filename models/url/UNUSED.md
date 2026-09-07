@@ -1,7 +1,6 @@
-# Parked — do not use
+# Parked — do not use (root of models/url)
 
-This directory is the **previous** URL detector. It is **out of the SIH plan**.
+Use **`models/url/v1/`** instead (`url-xgb-v1`).
 
-- Do not load `url_sklearn`, `url_model.json`, or any old joblib from here.
-- A replacement URL model will be added in a new path when it arrives.
-- Until then, URL scoring is heuristic only (regex, lookalike, shortener, CAPTCHA-gate).
+- Do not load root `url_sklearn.py`, `url_model.json`, or the tiny `url_pipeline.joblib`.
+- Live path: `backend/detection/url_ml.py` → `models/url/v1/url_model.json`.

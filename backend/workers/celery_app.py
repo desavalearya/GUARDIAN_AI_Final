@@ -16,4 +16,10 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     imports=("backend.workers.tasks",),
+    beat_schedule={
+        "enforce-retention-hourly": {
+            "task": "backend.workers.tasks.enforce_retention",
+            "schedule": 3600.0,
+        },
+    },
 )

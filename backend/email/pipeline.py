@@ -20,7 +20,7 @@ from backend.models import (
     EmailAttachment,
     EmailUrl,
 )
-from backend.privacy.redact import evidence_sha256, redact_text
+from backend.privacy.redact import evidence_sha256, redact_text, redact_url, sanitize_evidence
 from backend.risk.engine import apply_booster, compute_confidence, compute_risk, decide
 
 _redis = None
@@ -33,6 +33,11 @@ def redis_client():
     return _redis
 
 
+def _truncate(value: str | None, limit: int) -> str:
+    text = value or ""
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
 def persist_parsed(
     db: Session,
     parsed: ParsedEmail,
@@ -42,28 +47,30 @@ def persist_parsed(
     evidence_id: str,
     flags: dict,
     tokens: dict,
+    is_duplicate: bool = False,
 ) -> Email:
-    r = redis_client()
-    cache_key = f"email:hash:{evidence_id}"
-    is_dup = bool(r.get(cache_key))
-
     body = redact_text(parsed.body_plain)
     html = redact_text(parsed.body_html or "")
     headers = redact_text(parsed.raw_headers)
-    flags = {**flags, **{k: flags.get(k) or body.flags.get(k) or html.flags.get(k) for k in body.flags}}
-    tokens = {**tokens, **body.tokens, **html.tokens}
+    subject = redact_text(parsed.subject)
+    display = redact_text(parsed.sender_display_name)
+    flags = {
+        **flags,
+        **{k: flags.get(k) or body.flags.get(k) or html.flags.get(k) or subject.flags.get(k) for k in body.flags},
+    }
+    tokens = {**tokens, **body.tokens, **html.tokens, **subject.tokens}
 
     email = Email(
-        sender_address=parsed.sender_address,
-        sender_display_name=parsed.sender_display_name,
-        recipient_address=parsed.recipient_address or "user@example.com",
-        subject=redact_text(parsed.subject).text,
+        sender_address=_truncate(parsed.sender_address, 320),
+        sender_display_name=_truncate(display.text, 320),
+        recipient_address=_truncate(parsed.recipient_address or "user@example.com", 320),
+        subject=_truncate(subject.text, 998),
         body_plain=body.text,
         body_html=html.text or None,
         direction=direction,
-        ingestion_path=ingestion_path,
+        ingestion_path=_truncate(ingestion_path, 32),
         content_hash_sha256=parsed.content_hash_sha256,
-        is_duplicate=is_dup,
+        is_duplicate=is_duplicate,
         raw_headers=headers.text,
         raw_message="",
         status="processing",
@@ -79,23 +86,23 @@ def persist_parsed(
         db.add(
             EmailUrl(
                 email_id=email.id,
-                raw_url=url.raw_url,
-                source=url.source,
-                domain=url.domain,
+                raw_url=_truncate(redact_url(url.raw_url), 2048),
+                source=_truncate(url.source, 32),
+                domain=_truncate(url.domain, 255),
             )
         )
     for att in parsed.attachments:
+        safe_name = redact_text(att.filename).text or "unnamed"
         db.add(
             EmailAttachment(
                 email_id=email.id,
-                filename=att.filename,
+                filename=_truncate(safe_name, 255),
                 file_hash_sha256=att.sha256,
-                mime_type=att.mime_type,
+                mime_type=_truncate(att.mime_type, 128),
                 file_size_bytes=att.size,
                 storage_note="hash-only",
             )
         )
-    r.setex(cache_key, 60 * 60 * 24 * 7, str(email.id))
     return email
 
 
@@ -107,8 +114,8 @@ def save_detectors(db: Session, email_id: uuid.UUID, outputs: list[DetectorOutpu
                 detector_name=item.detector_name,
                 raw_score=item.raw_score,
                 verdict=item.verdict,
-                explanation=item.explanation,
-                evidence=item.evidence,
+                explanation=redact_text(item.explanation).text,
+                evidence=sanitize_evidence(item.evidence or {}),
                 model_version=item.model_version,
             )
         )
@@ -151,6 +158,12 @@ def ingest_and_analyze(
     default_recipient: str = "user@example.com",
 ) -> Email:
     raw_bytes = raw.encode("utf-8", errors="replace") if isinstance(raw, str) else raw
+    evidence_id = evidence_sha256(raw_bytes)
+    cache_key = f"email:hash:{evidence_id}"
+    r = redis_client()
+    # Read-only duplicate probe. Marker is written only after a successful commit.
+    is_dup = bool(r.get(cache_key))
+
     parsed = parse_raw_email(raw, default_recipient=default_recipient)
     enrich_parsed_with_qr(parsed)
     outputs = run_all_detectors(parsed, direction)
@@ -160,9 +173,10 @@ def ingest_and_analyze(
         parsed,
         direction,
         ingestion_path,
-        evidence_id=evidence_sha256(raw_bytes),
+        evidence_id=evidence_id,
         flags=redacted.flags,
         tokens=redacted.tokens,
+        is_duplicate=is_dup,
     )
     store_vault(db, email, raw_bytes)
     add_custody(db, email.id, "ingested", role="system", detail={"path": ingestion_path})
@@ -178,9 +192,19 @@ def ingest_and_analyze(
         "HUMAN_REVIEW",
     }:
         ensure_case(db, email)
-    add_custody(db, email.id, "analyzed", role="system", detail={"decision": email.decision.decision if email.decision else ""})
+    add_custody(
+        db,
+        email.id,
+        "analyzed",
+        role="system",
+        detail={"decision": email.decision.decision if email.decision else ""},
+    )
     db.commit()
     db.refresh(email)
+    try:
+        r.setex(cache_key, 60 * 60 * 24 * 7, str(email.id))
+    except Exception:
+        pass
     return email
 
 

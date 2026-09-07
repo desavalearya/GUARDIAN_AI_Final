@@ -18,7 +18,14 @@ def main() -> None:
     if role == "worker":
         os.execvp(
             "celery",
-            ["celery", "-A", "backend.workers.celery_app", "worker", "--loglevel=info"],
+            [
+                "celery",
+                "-A",
+                "backend.workers.celery_app",
+                "worker",
+                "--beat",
+                "--loglevel=info",
+            ],
         )
     if role == "smtp":
         os.execvp("python", ["python", "/app/gateway/smtp_gateway.py"])

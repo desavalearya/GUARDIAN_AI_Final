@@ -281,6 +281,7 @@ export default function App() {
                     key={c.id}
                     onClick={async () => {
                       setTab("threats");
+                      setReportOut("");
                       setDetail(await api(`/api/v1/soc/emails/${c.email_id}`, token));
                     }}
                   >
@@ -360,9 +361,16 @@ export default function App() {
                         headers: { Authorization: `Bearer ${token}` },
                         body: fd,
                       });
+                      if (res.status === 401) throw new Error("AUTH_401");
+                      if (!res.ok) throw new Error(await res.text());
                       const result = await res.json();
                       setLabOut(JSON.stringify(result, null, 2));
                     } catch (e) {
+                      const msg = String(e);
+                      if (msg.includes("AUTH_401")) {
+                        localStorage.removeItem("soc_token");
+                        setToken("");
+                      }
                       setLabOut(`Error: ${e}`);
                     }
                   }}
@@ -388,9 +396,16 @@ export default function App() {
                         headers: { Authorization: `Bearer ${token}` },
                         body: fd,
                       });
+                      if (res.status === 401) throw new Error("AUTH_401");
+                      if (!res.ok) throw new Error(await res.text());
                       const result = await res.json();
                       setLabOut(JSON.stringify(result, null, 2));
                     } catch (e) {
+                      const msg = String(e);
+                      if (msg.includes("AUTH_401")) {
+                        localStorage.removeItem("soc_token");
+                        setToken("");
+                      }
                       setLabOut(`Error: ${e}`);
                     }
                   }}
@@ -406,7 +421,7 @@ export default function App() {
                   {t.btnUploadEml}
                   <input
                     type="file"
-                    accept=".eml,.txt,.msg"
+                    accept=".eml,.txt"
                     style={{ display: "none" }}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
@@ -425,6 +440,7 @@ export default function App() {
                         if (!res.ok) throw new Error(await res.text());
                         const created = await res.json();
                         await load();
+                        setReportOut("");
                         setDetail(created);
                       } catch (err) {
                         const msg = String(err || "");
@@ -454,7 +470,10 @@ export default function App() {
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <tr key={r.id} onClick={async () => setDetail(await api(`/api/v1/soc/emails/${r.id}`, token))}>
+                    <tr key={r.id} onClick={async () => {
+                      setReportOut("");
+                      setDetail(await api(`/api/v1/soc/emails/${r.id}`, token));
+                    }}>
                       <td>{r.received_at?.slice(0, 19).replace("T", " ")}</td>
                       <td>{r.sender_address}</td>
                       <td>{r.subject}</td>
@@ -469,6 +488,104 @@ export default function App() {
                 <div className="detail">
                   <h2 style={{ marginTop: 0 }}>{detail.subject}</h2>
                   <p style={{ color: "var(--muted)" }}>{detail.body_plain}</p>
+                  <div className="report-actions" style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "12px 0 16px" }}>
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          setErr("");
+                          setReportOut("Loading forensic report…");
+                          const out = await api(`/api/v1/soc/emails/${detail.id}/report`, token);
+                          setReportOut(out.report_text || JSON.stringify(out, null, 2));
+                        } catch (e) {
+                          const msg = String(e);
+                          if (msg.includes("AUTH_401")) {
+                            localStorage.removeItem("soc_token");
+                            setToken("");
+                          }
+                          setReportOut("");
+                          setErr(msg);
+                        }
+                      }}
+                    >
+                      {t.btnReport}
+                    </button>
+                    <button
+                      className="btn btn-soft"
+                      type="button"
+                      onClick={async () => {
+                        setDetail(await api(`/api/v1/soc/emails/${detail.id}/preserve`, token, { method: "POST" }));
+                      }}
+                    >
+                      {t.btnPreserve}
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      type="button"
+                      onClick={async () => {
+                        const out = await api(`/api/v1/soc/emails/${detail.id}/unlock`, token, { method: "POST" });
+                        setReportOut(
+                          JSON.stringify(
+                            { unlocked: true, warning: out.warning, preview: String(out.raw_message || "").slice(0, 400) },
+                            null,
+                            2
+                          )
+                        );
+                      }}
+                    >
+                      {t.btnUnlock}
+                    </button>
+                    <button
+                      className="btn btn-soft"
+                      type="button"
+                      onClick={async () => {
+                        setDetail(
+                          await api(`/api/v1/soc/emails/${detail.id}/release`, token, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ notes: "released from SOC" }),
+                          })
+                        );
+                        load();
+                      }}
+                    >
+                      {t.btnRelease}
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      type="button"
+                      onClick={async () => {
+                        setDetail(
+                          await api(`/api/v1/soc/emails/${detail.id}/block`, token, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ notes: "blocked from SOC" }),
+                          })
+                        );
+                        load();
+                      }}
+                    >
+                      {t.btnBlock}
+                    </button>
+                  </div>
+                  {reportOut && (
+                    <pre
+                      className="forensic-report"
+                      style={{
+                        maxHeight: 480,
+                        overflow: "auto",
+                        whiteSpace: "pre-wrap",
+                        fontSize: 12,
+                        background: "var(--panel, #0f1419)",
+                        border: "1px solid var(--border, #333)",
+                        padding: 12,
+                        marginBottom: 16,
+                      }}
+                    >
+                      {reportOut}
+                    </pre>
+                  )}
                   {(() => {
                     const origin = detail.detectors.find((d) => d.detector_name === "origin_infra");
                     const ev = (origin?.evidence || {}) as Record<string, unknown>;
@@ -531,62 +648,6 @@ export default function App() {
                   {detail.secret_flags && Object.values(detail.secret_flags).some(Boolean) && (
                     <p style={{ color: "var(--muted)" }}>Secrets tokenised (flags only, no digits stored).</p>
                   )}
-                  {reportOut && <pre style={{ maxHeight: 220, overflow: "auto" }}>{reportOut}</pre>}
-                  <p style={{ marginTop: 14 }}>
-                    <button
-                      className="btn btn-soft"
-                      onClick={async () => setReportOut(JSON.stringify(await api(`/api/v1/soc/emails/${detail.id}/report`, token), null, 2))}
-                    >
-                      {t.btnReport}
-                    </button>{" "}
-                    <button
-                      className="btn btn-soft"
-                      onClick={async () => {
-                        setDetail(await api(`/api/v1/soc/emails/${detail.id}/preserve`, token, { method: "POST" }));
-                      }}
-                    >
-                      {t.btnPreserve}
-                    </button>{" "}
-                    <button
-                      className="btn btn-danger"
-                      onClick={async () => {
-                        const out = await api(`/api/v1/soc/emails/${detail.id}/unlock`, token, { method: "POST" });
-                        setReportOut(JSON.stringify({ unlocked: true, warning: out.warning, preview: String(out.raw_message || "").slice(0, 400) }, null, 2));
-                      }}
-                    >
-                      {t.btnUnlock}
-                    </button>{" "}
-                    <button
-                      className="btn btn-primary"
-                      onClick={async () => {
-                        setDetail(
-                          await api(`/api/v1/soc/emails/${detail.id}/release`, token, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ notes: "released from SOC" }),
-                          })
-                        );
-                        load();
-                      }}
-                    >
-                      {t.btnRelease}
-                    </button>{" "}
-                    <button
-                      className="btn btn-danger"
-                      onClick={async () => {
-                        setDetail(
-                          await api(`/api/v1/soc/emails/${detail.id}/block`, token, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ notes: "blocked from SOC" }),
-                          })
-                        );
-                        load();
-                      }}
-                    >
-                      {t.btnBlock}
-                    </button>
-                  </p>
                 </div>
               )}
             </>

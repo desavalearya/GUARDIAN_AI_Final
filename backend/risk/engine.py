@@ -13,19 +13,33 @@ INDEPENDENT = {
     "doc_attachment_threat",
     "impersonation",
     "ato_baseline",
+    "recon_pixel",
+    "svg_ics",
+}
+
+CONTENT_AGREE = {
+    "xlm_r_phishing",
+    "url_model",
+    "impersonation",
+    "malware_scan",
+    "doc_attachment_threat",
+    "recon_pixel",
+    "svg_ics",
 }
 
 WEIGHTS = {
-    "sender_auth": 0.18,
-    "url_model": 0.16,
-    "xlm_r_phishing": 0.16,
-    "credential_detector": 0.12,
-    "malware_scan": 0.12,
-    "doc_attachment_threat": 0.12,
-    "origin_infra": 0.06,
+    "sender_auth": 0.16,
+    "url_model": 0.15,
+    "xlm_r_phishing": 0.15,
+    "credential_detector": 0.1,
+    "malware_scan": 0.1,
+    "doc_attachment_threat": 0.1,
+    "origin_infra": 0.05,
     "impersonation": 0.1,
-    "lure_heuristics": 0.08,
-    "ato_baseline": 0.1,
+    "lure_heuristics": 0.07,
+    "ato_baseline": 0.09,
+    "recon_pixel": 0.06,
+    "svg_ics": 0.07,
 }
 
 VARIANCE_UNCERTAIN = 0.08
@@ -41,8 +55,18 @@ def compute_confidence(detectors: list[DetectorOutput]) -> tuple[str, float]:
         return "CONFIDENT", 0.0
     scores = [d.raw_score for d in active]
     variance = statistics.pvariance(scores)
-    state = "UNCERTAIN" if variance >= VARIANCE_UNCERTAIN else "CONFIDENT"
-    return state, round(variance, 4)
+    if variance < VARIANCE_UNCERTAIN:
+        return "CONFIDENT", round(variance, 4)
+    content_hits = [d for d in active if d.detector_name in CONTENT_AGREE and d.raw_score >= 0.7]
+    if len(content_hits) >= 2:
+        return "CONFIDENT", round(variance, 4)
+    if any(
+        d.detector_name in {"url_model", "malware_scan", "doc_attachment_threat", "svg_ics"}
+        and d.raw_score >= 0.7
+        for d in active
+    ):
+        return "CONFIDENT", round(variance, 4)
+    return "UNCERTAIN", round(variance, 4)
 
 
 def compute_risk(detectors: list[DetectorOutput]) -> tuple[float, dict]:
@@ -72,17 +96,23 @@ def apply_booster(
         return max(risk, 92.0)
     auth = by_name.get("sender_auth")
     url = by_name.get("url_model")
-    if (
-        phish
-        and url
-        and auth
-        and phish.raw_score >= 0.7
-        and url.raw_score >= 0.7
-        and auth.raw_score >= 0.7
-    ):
-        return max(risk, 92.0)
+    if url and url.raw_score >= 0.7:
+        if auth and auth.raw_score >= 0.7:
+            return max(risk, 92.0)
+        imp = by_name.get("impersonation")
+        if imp and imp.raw_score >= 0.7:
+            return max(risk, 92.0)
+        if phish and phish.raw_score >= 0.7:
+            return max(risk, 75.0)
+        return max(risk, 72.0)
     if phish and creds and phish.raw_score >= 0.7 and creds.raw_score >= 0.7:
         return max(risk, 88.0)
+    svg = by_name.get("svg_ics")
+    if svg and svg.raw_score >= 0.7:
+        return max(risk, 70.0)
+    pixel = by_name.get("recon_pixel")
+    if pixel and pixel.raw_score >= 0.7:
+        return max(risk, 55.0)
     lure = by_name.get("lure_heuristics")
     if (
         lure
@@ -99,12 +129,13 @@ def apply_booster(
 
 
 def decide(risk: float, confidence_state: str) -> tuple[str, str | None]:
-    if confidence_state == "UNCERTAIN":
-        return "HUMAN_REVIEW", "UNCERTAIN"
+    # High-confidence payload risk must not be softened to HUMAN_REVIEW by variance alone.
     if risk >= 91:
         return "HARD_BLOCK", "HIGH_RISK"
     if risk >= 71:
         return "BLOCK", "HIGH_RISK"
+    if confidence_state == "UNCERTAIN":
+        return "HUMAN_REVIEW", "UNCERTAIN"
     if risk >= 46:
         return "QUARANTINE", "HIGH_RISK"
     if risk >= 21:

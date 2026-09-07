@@ -158,6 +158,24 @@ def forensic_report(
     return masked_report(email)
 
 
+@router.get("/emails/{email_id}/report.txt")
+def forensic_report_text(
+    email_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("viewer", "analyst", "admin")),
+):
+    from fastapi.responses import PlainTextResponse
+
+    from backend.cases.service import forensic_assessment_text
+
+    email = db.query(Email).filter(Email.id == email_id).one_or_none()
+    if email is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    add_custody(db, email.id, "exported_text", actor_id=current_user.id, role=current_user.role)
+    db.commit()
+    return PlainTextResponse(forensic_assessment_text(email), media_type="text/plain; charset=utf-8")
+
+
 @router.get("/emails/{email_id}/fir")
 def fir_notes(
     email_id: UUID,

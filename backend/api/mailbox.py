@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -59,7 +61,7 @@ def list_folder(
 
 @router.get("/messages/{email_id}", response_model=EmailDetail)
 def read_message(
-    email_id: str,
+    email_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EmailDetail:

@@ -39,4 +39,5 @@ sentencepiece==0.2.0
 olefile==0.47
 PyPDF2==3.0.1
 maxminddb==2.6.3
+tldextract==5.1.3
 

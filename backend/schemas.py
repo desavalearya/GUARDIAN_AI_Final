@@ -46,14 +46,14 @@ class CeleryPingResponse(BaseModel):
 
 class ComposeRequest(BaseModel):
     recipient: EmailStr = "user@example.com"
-    subject: str
-    body: str
+    subject: str = Field(min_length=1, max_length=998, pattern=r"^[^\r\n]*$")
+    body: str = Field(max_length=500_000)
 
 
 class IngestRawRequest(BaseModel):
-    raw_message: str
+    raw_message: str = Field(max_length=15_000_000)
     direction: str = Field(default="inbound", pattern="^(inbound|outbound)$")
-    ingestion_path: str = "api"
+    ingestion_path: str = Field(default="api", max_length=32)
 
 
 class DetectorOut(BaseModel):

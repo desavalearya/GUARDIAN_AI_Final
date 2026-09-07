@@ -3,14 +3,14 @@
 **Product spec (source of truth):** [`PHISHPROOF_COMPLETE_FINAL.md`](./PHISHPROOF_COMPLETE_FINAL.md)  
 Copied from `E:\SIH\PHISHPROOF_COMPLETE_FINAL.md`. Older Guardian execution plans in this repo are historical only.
 
-**URL models:** do **not** load or pitch anything under `models/url/` (broken `url_sklearn` / old joblib / JSON). A **new URL model** will be provided. Until it lands, Fast Path uses **regex + lookalike + shortener + CAPTCHA-gate heuristics only**.
+**URL models:** live path uses **`models/url/v1`** (`url-xgb-v1`, ~89.7% test accuracy, ROC-AUC 94.69%). Root `models/url/*` (except `v1/`) stays parked. Heuristics remain as fallback if the model fails to load.
 
 ---
 
 ## Status (6 Sep 2026)
 
 - Live path uses **XLM-R + Office + PDF v3** (falls back to heuristics if a model fails).
-- URL = **heuristics only** (`heuristic-url-v2`). `models/url/` is not loaded.
+- URL = **url-xgb-v1** (`models/url/v1`) with heuristic fallback. Card: **89.73% accuracy**, ROC-AUC **94.69%**, FPR **~1%** at cutoff 0.9062; recall at that strict cutoff ~60% (production soft thresholds 0.35 / 0.70).
 - SOC can **Upload .eml** on http://localhost:5174 (same engine as SMTP).
 - Demo files: `fixtures/demo_eml/case1_clean.eml` → `PASS`; `case2_bank_lookalike.eml` → `HARD_BLOCK` (XLM-R + URL + impersonation).
 - QR decode runs if pyzbar/OpenCV is installed; otherwise images are noted and HTML/QR URLs still go through URL heuristics when decoded later.

@@ -76,8 +76,10 @@ async def scan_text(request: TextScanRequest) -> TextScanResponse:
     
     **Use case**: Test email subject lines, message bodies, or any text.
     """
+    import asyncio
+
     try:
-        result = ml_runtime.score_text(request.text)
+        result = await asyncio.to_thread(ml_runtime.score_text, request.text)
         return TextScanResponse(
             text_preview=request.text[:100] + ("..." if len(request.text) > 100 else ""),
             model_used="XLM-RoBERTa",
@@ -100,13 +102,24 @@ async def scan_office_document(file: UploadFile = File(...)) -> FileScanResponse
     
     **Use case**: Test Office files for malicious macros and VBA code.
     """
+    import asyncio
+
+    from backend.config import settings
+
     try:
         # Validate file type
-        if not any(file.filename.lower().endswith(ext) for ext in ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']):
+        if not any(
+            file.filename.lower().endswith(ext)
+            for ext in [".doc", ".docx", ".docm", ".xls", ".xlsx", ".xlsm", ".ppt", ".pptx", ".pptm"]
+        ):
             raise HTTPException(status_code=400, detail="Only Office documents are supported")
         
         content = await file.read()
-        result = ml_runtime.score_office(content, file.filename or "document.docx")
+        if len(content) > settings.max_attachment_bytes:
+            raise HTTPException(status_code=413, detail="File too large")
+        result = await asyncio.to_thread(
+            ml_runtime.score_office, content, file.filename or "document.docx"
+        )
         return FileScanResponse(
             filename=file.filename or result.filename,
             file_type="Office Document",
@@ -135,13 +148,21 @@ async def scan_pdf_document(file: UploadFile = File(...)) -> FileScanResponse:
     
     **Use case**: Test PDF files for malicious JavaScript, embedded files, etc.
     """
+    import asyncio
+
+    from backend.config import settings
+
     try:
         # Validate file type
         if not file.filename.lower().endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Only PDF files are supported")
         
         content = await file.read()
-        result = ml_runtime.score_pdf(content, file.filename or "document.pdf")
+        if len(content) > settings.max_attachment_bytes:
+            raise HTTPException(status_code=413, detail="File too large")
+        result = await asyncio.to_thread(
+            ml_runtime.score_pdf, content, file.filename or "document.pdf"
+        )
         return FileScanResponse(
             filename=file.filename or result.filename,
             file_type="PDF",
@@ -185,18 +206,23 @@ async def get_models_status():
         "email_text": {
             "available": (
                 ml_runtime.model_path("email", "config.json").exists()
-                and ml_runtime.model_path("email", "training_args.bin").exists()
+                and (
+                    ml_runtime.model_path("email", "model.safetensors").exists()
+                    or ml_runtime.model_path("email", "pytorch_model.bin").exists()
+                )
             ),
             "loaded": ml_runtime._email_model is not None,
             "type": "XLM-RoBERTa",
             "version": "v1",
         },
         "url": {
-            "available": False,
+            "available": (ml_runtime.model_path("url", "v1", "url_model.json").exists()),
             "loaded": False,
-            "type": "heuristics",
-            "version": "heuristic-url-v2",
-            "note": "Previous models/url artifacts are parked. Waiting for a new URL model.",
+            "type": "XGBoost",
+            "version": "url-xgb-v1",
+            "note": "models/url/v1 active. Root models/url/* (except v1) remain parked.",
+            "card_accuracy_pct": 89.73,
+            "card_roc_auc": 0.9469,
         },
     }
     

@@ -12,6 +12,8 @@ from backend.schemas import EmailDetail, IngestRawRequest
 router = APIRouter(prefix="/api/v1/ingest", tags=["ingest"])
 
 
+from backend.privacy.redact import sanitize_evidence
+
 def serialize_email(email: Email) -> EmailDetail:
     conf = email.confidence
     dec = email.decision
@@ -35,7 +37,7 @@ def serialize_email(email: Email) -> EmailDetail:
                 "raw_score": d.raw_score,
                 "verdict": d.verdict,
                 "explanation": d.explanation,
-                "evidence": d.evidence or {},
+                "evidence": sanitize_evidence(d.evidence or {}),
                 "model_version": d.model_version,
             }
             for d in email.detector_results

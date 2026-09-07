@@ -116,14 +116,54 @@ def run_url_model(parsed: ParsedEmail) -> DetectorOutput:
             evidence={"urls": []},
         )
 
-    score, details = score_urls(parsed.urls)
+    heur_score, heur_details = score_urls(parsed.urls)
+    heur_by_url = {item["url"]: item for item in heur_details}
+    details = []
+    scores = []
+    backend = "heuristics"
+    try:
+        from backend.detection import url_ml
+
+        if url_ml.available():
+            backend = "url-xgb-v1+heuristics"
+            for item in parsed.urls:
+                ml_p = url_ml.score_url(item.raw_url)
+                h = heur_by_url.get(item.raw_url) or {}
+                h_p = float(h.get("score") or 0.0)
+                p = max(ml_p, h_p)
+                scores.append(p)
+                reasons = ["url-xgb-v1"] + list(h.get("reasons") or [])
+                if h_p > ml_p:
+                    reasons.append("heuristic-override")
+                details.append(
+                    {
+                        "url": item.raw_url,
+                        "domain": item.domain,
+                        "source": getattr(item, "source", ""),
+                        "score": round(p, 4),
+                        "ml_score": round(ml_p, 4),
+                        "heuristic_score": round(h_p, 4),
+                        "reasons": reasons,
+                    }
+                )
+    except Exception as exc:  # noqa: BLE001
+        log.warning("URL ML unavailable, using heuristics: %s", exc)
+        backend = "heuristics-fallback"
+        scores = [float(item["score"]) for item in heur_details]
+        details = heur_details
+
+    if not details:
+        scores = [float(item["score"]) for item in heur_details]
+        details = heur_details
+
+    score = max(scores) if scores else 0.0
     return DetectorOutput(
         detector_name="url_model",
         raw_score=round(score, 3),
         verdict=_verdict(score),
-        explanation=f"Heuristic URL rules on {len(parsed.urls)} URL(s); max={score:.2f}.",
-        evidence={"urls": details, "backend": "heuristics-only"},
-        model_version="heuristic-url-v2",
+        explanation=f"URL score on {len(parsed.urls)} URL(s); max={score:.2f} ({backend}).",
+        evidence={"urls": details, "backend": backend},
+        model_version="url-xgb-v1" if "url-xgb" in backend else "heuristic-url-v2",
     )
 
 
@@ -192,16 +232,26 @@ def run_image_qr(parsed: ParsedEmail, qr_report: dict | None = None) -> Detector
 
     qr_urls = list(report.get("urls") or [])
     if qr_urls:
-        from backend.detection.url_heuristics import score_one_url
         from backend.email.parser import _domain
 
-        scores = [score_one_url(u, _domain(u))[0] for u in qr_urls]
+        scores = []
+        try:
+            from backend.detection import url_ml
+
+            if url_ml.available():
+                scores = [url_ml.score_url(u) for u in qr_urls]
+        except Exception:
+            scores = []
+        if not scores:
+            from backend.detection.url_heuristics import score_one_url
+
+            scores = [score_one_url(u, _domain(u))[0] for u in qr_urls]
         score = max(scores)
         return DetectorOutput(
             detector_name="image_qr",
             raw_score=round(score, 3),
             verdict=_verdict(score),
-            explanation=f"Decoded {len(qr_urls)} QR URL(s); scored by URL heuristics.",
+            explanation=f"Decoded {len(qr_urls)} QR URL(s); scored by URL pipeline.",
             evidence=report,
             model_version="qr-url-v1",
         )
@@ -375,13 +425,14 @@ def run_doc_attachment(parsed: ParsedEmail) -> DetectorOutput:
     if not evidence_files:
         return _heuristic_doc(parsed)
 
+    used_ml = any(item.get("model") and "heuristic" not in str(item.get("model")) for item in evidence_files)
     return DetectorOutput(
         detector_name="doc_attachment_threat",
         raw_score=round(max_score, 3),
         verdict=_verdict(max_score),
         explanation="; ".join(item.get("explanation", "") for item in evidence_files if item.get("explanation")),
-        evidence={"files": evidence_files, "backend": "ml"},
-        model_version="+".join(sorted(set(versions))) or "doc-ml",
+        evidence={"files": evidence_files, "backend": "ml" if used_ml else "heuristic-fallback"},
+        model_version="+".join(sorted(set(versions))) or ("doc-ml" if used_ml else "heuristic-doc-v1"),
     )
 
 

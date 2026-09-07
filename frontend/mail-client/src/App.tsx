@@ -26,6 +26,10 @@ async function api(path: string, token: string, init?: RequestInit) {
       ...(init?.headers || {}),
     },
   });
+  if (res.status === 401) {
+    localStorage.removeItem("mail_token");
+    throw new Error("AUTH_401");
+  }
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -92,7 +96,17 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (token) load().catch((ex) => setErr(String(ex)));
+    if (token) {
+      load().catch((ex) => {
+        const msg = String(ex);
+        if (msg.includes("AUTH_401")) {
+          setToken("");
+          setErr("Session expired — sign in again.");
+          return;
+        }
+        setErr(msg);
+      });
+    }
   }, [token, folder]);
 
   if (!token) {
@@ -200,16 +214,31 @@ export default function App() {
                 e.preventDefault();
                 setErr("");
                 try {
-                  await api("/api/v1/mailbox/compose", token, {
+                  const created = await api("/api/v1/mailbox/compose", token, {
                     method: "POST",
                     body: JSON.stringify({ recipient: to, subject, body }),
                   });
+                  const decision = created.decision || "PASS";
+                  if (decision === "PASS" || decision === "SOFT_PASS") {
+                    setErr("");
+                    alert(`Sent (Guardian decision: ${decision}).`);
+                  } else if (decision === "QUARANTINE" || decision === "HUMAN_REVIEW") {
+                    alert(`Stored for review — not relayed (decision: ${decision}).`);
+                  } else {
+                    alert(`Not sent (decision: ${decision}).`);
+                  }
                   setCompose(false);
                   setSubject("");
                   setBody("");
-                  setFolder("sent");
+                  setFolder(decision === "PASS" || decision === "SOFT_PASS" ? "sent" : "quarantine");
                 } catch (ex) {
-                  setErr(String(ex));
+                  const msg = String(ex);
+                  if (msg.includes("AUTH_401")) {
+                    setToken("");
+                    setErr("Session expired — sign in again.");
+                    return;
+                  }
+                  setErr(msg);
                 }
               }}
             >

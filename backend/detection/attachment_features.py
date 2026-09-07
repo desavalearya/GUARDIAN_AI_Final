@@ -144,6 +144,8 @@ def _macro_source_via_olevba(content: bytes, filename: str) -> tuple[str, str] |
 
 def _ooxml_macro_bytes(content: bytes) -> tuple[bytes, list[str], bool]:
     """Pull VBA project bytes out of an OOXML (ZIP) document."""
+    from backend.config import settings
+
     notes: list[str] = []
     try:
         with zipfile.ZipFile(io.BytesIO(content)) as zf:
@@ -157,7 +159,18 @@ def _ooxml_macro_bytes(content: bytes) -> tuple[bytes, list[str], bool]:
                 )
                 return b"", notes, False
             notes.append(f"VBA project parts: {', '.join(vba_members)}")
-            blob = b"".join(zf.read(n) for n in vba_members)
+            blob = b""
+            limit = int(getattr(settings, "max_zip_member_bytes", 50_000_000) or 50_000_000)
+            for name in vba_members:
+                info = zf.getinfo(name)
+                if info.file_size > limit:
+                    notes.append(f"skipped oversized ZIP member {name} ({info.file_size} bytes)")
+                    continue
+                chunk = zf.read(name)
+                if len(blob) + len(chunk) > limit:
+                    notes.append("truncated VBA extraction at expanded-size limit")
+                    break
+                blob += chunk
             return blob, notes, True
     except zipfile.BadZipFile:
         notes.append("not a valid OOXML archive")

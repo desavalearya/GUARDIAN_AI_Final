@@ -8,6 +8,9 @@ from urllib.parse import urlparse
 from backend.email.parser import ParsedUrl
 
 BAD_TLDS = (".xyz", ".top", ".click", ".zip", ".mov", ".country", ".gq", ".tk", ".ml", ".cf", ".ga")
+ODD_SUFFIXES = (".ch.ma", ".co.cc", ".co.vu", ".cu.cc", ".za.net", ".xx.fb")
+SCRIPT_PATH_RE = re.compile(r"\.(js|exe|apk|scr|vbs|bat|cmd|msi)(?:\?|$|/)", re.IGNORECASE)
+AD_CLOAK = ("google_ad_format", "google_ad", "clickid=", "gclid=", "utm_redirect")
 SHORTENERS = {
     "bit.ly",
     "t.co",
@@ -39,10 +42,13 @@ BRANDS = (
     "axisbank",
     "paytm",
     "phonepe",
+    "office",
 )
 SAFE_DOMAINS = {
     "google.com",
     "microsoft.com",
+    "office.com",
+    "gmail.com",
     "github.com",
     "wikipedia.org",
     "gov.in",
@@ -104,6 +110,16 @@ def score_one_url(raw_url: str, domain: str) -> tuple[float, list[str]]:
     if any(word in url for word in LURE_WORDS):
         score = max(score, 0.75)
         reasons.append("lure-keyword")
+    if any(host.endswith(suf) or host.endswith(suf.lstrip(".")) for suf in ODD_SUFFIXES):
+        score = max(score, 0.8)
+        reasons.append("odd-compound-tld")
+    parsed = urlparse(raw_url if "://" in (raw_url or "") else "http://" + (raw_url or ""))
+    if SCRIPT_PATH_RE.search(f"{parsed.path}?{parsed.query}"):
+        score = max(score, 0.78)
+        reasons.append("script-or-binary-path")
+    if any(mark in url for mark in AD_CLOAK):
+        score = max(score, 0.8)
+        reasons.append("ad-cloak-params")
 
     labels = host.replace("-", ".").split(".")
     for brand in BRANDS:
@@ -122,7 +138,6 @@ def score_one_url(raw_url: str, domain: str) -> tuple[float, list[str]]:
             score = max(score, 0.78)
             reasons.append(f"brand-in-unrelated-host:{brand}")
 
-    parsed = urlparse(raw_url)
     if parsed.scheme not in ("http", "https", ""):
         score = max(score, 0.55)
         reasons.append("odd-scheme")

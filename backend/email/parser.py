@@ -12,6 +12,20 @@ from urllib.parse import urlparse
 
 URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 HTML_HREF_RE = re.compile(r"""href=["']([^"']+)["']""", re.IGNORECASE)
+# Scheme-less host/path (Gmail plain parts often drop http://).
+BARE_URL_RE = re.compile(
+    r"(?<!@)\b((?:www\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9]{2,24})+)(/[^\s<>\"']*)?",
+    re.IGNORECASE,
+)
+SKIP_BARE_HOSTS = {
+    "gmail.com",
+    "google.com",
+    "outlook.com",
+    "hotmail.com",
+    "yahoo.com",
+    "example.com",
+    "w3.org",
+}
 
 
 @dataclass
@@ -52,11 +66,28 @@ def _domain(url: str) -> str:
         return ""
 
 
+def _normalize_url(raw: str) -> str:
+    url = (raw or "").rstrip(").,;]")
+    if url and "://" not in url:
+        url = "http://" + url
+    return url
+
+
 def _collect_urls(text: str, source: str) -> list[ParsedUrl]:
     seen: set[str] = set()
     out: list[ParsedUrl] = []
     for match in URL_RE.findall(text or ""):
-        url = match.rstrip(").,;]")
+        url = _normalize_url(match)
+        if url not in seen:
+            seen.add(url)
+            out.append(ParsedUrl(raw_url=url, source=source, domain=_domain(url)))
+    for host, path in BARE_URL_RE.findall(text or ""):
+        host_l = host.lower().rstrip(".")
+        if host_l in SKIP_BARE_HOSTS and not path:
+            continue
+        if "." not in host_l or host_l.endswith((".png", ".jpg", ".gif", ".css")):
+            continue
+        url = _normalize_url(host + (path or ""))
         if url not in seen:
             seen.add(url)
             out.append(ParsedUrl(raw_url=url, source=source, domain=_domain(url)))
@@ -82,19 +113,30 @@ def parse_raw_email(raw: bytes | str, default_recipient: str = "user@example.com
     if msg.is_multipart():
         for part in msg.walk():
             ctype = part.get_content_type()
-            disp = str(part.get("Content-Disposition") or "")
+            if ctype == "multipart/alternative" or ctype.startswith("multipart/"):
+                continue
+            disp = str(part.get("Content-Disposition") or "").lower()
+            filename = part.get_filename()
+            is_attach = "attachment" in disp or bool(filename)
+            is_inline_image = ctype.startswith("image/") and ("inline" in disp or not is_attach)
             if ctype == "text/plain" and "attachment" not in disp:
                 payload = part.get_content()
                 body_plain += payload if isinstance(payload, str) else ""
             elif ctype == "text/html" and "attachment" not in disp:
                 payload = part.get_content()
                 body_html = payload if isinstance(payload, str) else None
-            elif "attachment" in disp or part.get_filename():
-                filename = part.get_filename() or "unnamed"
+            elif is_attach or is_inline_image:
                 data = part.get_payload(decode=True) or b""
+                if not data and not is_attach:
+                    continue
+                name = filename or (
+                    f"inline-{ctype.replace('/', '.')}-{len(attachments)+1}"
+                    if is_inline_image
+                    else "unnamed"
+                )
                 attachments.append(
                     ParsedAttachment(
-                        filename=filename,
+                        filename=name,
                         mime_type=ctype,
                         payload=data,
                         sha256=hashlib.sha256(data).hexdigest(),
@@ -102,18 +144,39 @@ def parse_raw_email(raw: bytes | str, default_recipient: str = "user@example.com
                     )
                 )
     else:
-        payload = msg.get_content()
-        if msg.get_content_type() == "text/html":
-            body_html = payload if isinstance(payload, str) else None
-            body_plain = re.sub(r"<[^>]+>", " ", body_html or "")
+        ctype = msg.get_content_type()
+        disp = str(msg.get("Content-Disposition") or "").lower()
+        filename = msg.get_filename()
+        if "attachment" in disp or filename or ctype not in {"text/plain", "text/html", "message/rfc822"}:
+            data = msg.get_payload(decode=True) or b""
+            attachments.append(
+                ParsedAttachment(
+                    filename=filename or "unnamed",
+                    mime_type=ctype,
+                    payload=data if isinstance(data, (bytes, bytearray)) else b"",
+                    sha256=hashlib.sha256(data if isinstance(data, (bytes, bytearray)) else b"").hexdigest(),
+                    size=len(data) if isinstance(data, (bytes, bytearray)) else 0,
+                )
+            )
         else:
-            body_plain = payload if isinstance(payload, str) else raw_text
+            payload = msg.get_content()
+            if ctype == "text/html":
+                body_html = payload if isinstance(payload, str) else None
+                body_plain = re.sub(r"<[^>]+>", " ", body_html or "")
+            else:
+                body_plain = payload if isinstance(payload, str) else raw_text
+
+    if not body_plain.strip() and body_html:
+        body_plain = re.sub(r"<[^>]+>", " ", unescape(body_html))
+        body_plain = re.sub(r"\s+", " ", body_plain).strip()
 
     urls = _collect_urls(body_plain, "body_text")
     if body_html:
         for href in HTML_HREF_RE.findall(unescape(body_html)):
-            if href.startswith("http"):
-                urls.append(ParsedUrl(raw_url=href, source="body_html", domain=_domain(href)))
+            href = href.strip()
+            if href.startswith("http") or (href and "://" not in href and "." in href and not href.startswith("#")):
+                raw = _normalize_url(href)
+                urls.append(ParsedUrl(raw_url=raw, source="body_html", domain=_domain(raw)))
 
     unique: dict[str, ParsedUrl] = {}
     for item in urls:

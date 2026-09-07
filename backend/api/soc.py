@@ -37,19 +37,32 @@ async def upload_eml(
     current_user: User = Depends(require_roles("viewer", "analyst", "admin")),
 ) -> EmailDetail:
     """Analyse a raw .eml through the same pipeline as SMTP ingest."""
+    import asyncio
+
+    from backend.config import settings
+
     name = (file.filename or "complaint.eml").lower()
-    if not name.endswith((".eml", ".msg", ".txt")):
-        raise HTTPException(status_code=400, detail="Upload a .eml (or .txt raw message)")
+    if not name.endswith((".eml", ".txt")):
+        raise HTTPException(
+            status_code=400,
+            detail="Upload RFC822 .eml or .txt. Outlook .msg is not supported (convert to .eml first).",
+        )
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Empty file")
-    email = ingest_and_analyze(
-        db,
-        raw,
-        direction="inbound",
-        ingestion_path="soc_upload",
-        default_recipient=current_user.email,
-    )
+    if len(raw) > settings.max_attachment_bytes:
+        raise HTTPException(status_code=413, detail="File too large")
+
+    def _run() -> Email:
+        return ingest_and_analyze(
+            db,
+            raw,
+            direction="inbound",
+            ingestion_path="soc_upload",
+            default_recipient=current_user.email,
+        )
+
+    email = await asyncio.to_thread(_run)
     email = db.query(Email).filter(Email.id == email.id).one()
     write_audit(
         db,

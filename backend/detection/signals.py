@@ -70,19 +70,35 @@ def run_impersonation(parsed: ParsedEmail) -> DetectorOutput:
     score = 0.08
 
     if any(ord(ch) > 127 for ch in f"{display}{sender}"):
-        score = max(score, 0.7)
-        reasons.append("non-ascii-homograph")
+        # Non-ASCII alone is weak (legitimate multilingual names). Strong only with mix/lookalike.
+        ascii_fold = _fold(f"{display}{sender}")
+        mixed = any(ord(ch) > 127 for ch in f"{display}{sender}") and any(
+            "a" <= ch <= "z" or "0" <= ch <= "9" for ch in ascii_fold
+        )
+        if mixed and any(brand in ascii_fold for brand in BRANDS):
+            score = max(score, 0.72)
+            reasons.append("homoglyph-brand-mix")
+        else:
+            score = max(score, 0.25)
+            reasons.append("non-ascii-script-weak")
     if domain.startswith("xn--") or ".xn--" in domain:
         score = max(score, 0.78)
         reasons.append("punycode-domain")
 
     for brand in BRANDS:
-        if brand in _fold(display) and brand not in domain:
-            score = max(score, 0.82)
-            reasons.append(f"display-brand-mismatch:{brand}")
+        official = (f"{brand}.com", f"{brand}.in", f"{brand}.co.in", f"{brand}bank.com")
+        if brand in _fold(display):
+            if not any(domain == o or domain.endswith("." + o) for o in official):
+                score = max(score, 0.82)
+                reasons.append(f"display-brand-mismatch:{brand}")
         labels = domain.replace("-", ".").split(".")
         for label in labels:
-            if label == brand or len(label) < 4:
+            if label == brand:
+                if not any(domain == o or domain.endswith("." + o) for o in official):
+                    score = max(score, 0.8)
+                    reasons.append(f"brand-in-unofficial-domain:{brand}")
+                continue
+            if len(label) < 4:
                 continue
             if 0 < levenshtein(label, brand) <= 2:
                 score = max(score, 0.86)
@@ -92,14 +108,23 @@ def run_impersonation(parsed: ParsedEmail) -> DetectorOutput:
         score = max(score, 0.75)
         reasons.append("bank-display-unrelated-domain")
 
-    if not reasons:
+    if not reasons or reasons == ["non-ascii-script-weak"]:
+        if reasons == ["non-ascii-script-weak"]:
+            return DetectorOutput(
+                detector_name="impersonation",
+                raw_score=0.25,
+                verdict="clean",
+                explanation="Non-ASCII display/address alone is not treated as impersonation.",
+                evidence={"display": display, "domain": domain, "reasons": reasons},
+                model_version="impersonation-v2",
+            )
         return DetectorOutput(
             detector_name="impersonation",
             raw_score=0.0,
             verdict="not_applicable",
             explanation="No impersonation or lookalike brand signal.",
             evidence={"display": display, "domain": domain},
-            model_version="impersonation-v1",
+            model_version="impersonation-v2",
         )
     return DetectorOutput(
         detector_name="impersonation",
@@ -107,7 +132,7 @@ def run_impersonation(parsed: ParsedEmail) -> DetectorOutput:
         verdict=_verdict(score),
         explanation="; ".join(reasons),
         evidence={"display": display, "domain": domain, "reasons": reasons},
-        model_version="impersonation-v1",
+        model_version="impersonation-v2",
     )
 
 
