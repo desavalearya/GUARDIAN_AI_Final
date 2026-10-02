@@ -2,10 +2,11 @@ from backend.auth.security import hash_password
 from backend.database import SessionLocal
 from backend.email.parser import build_rfc822
 from backend.email.pipeline import ingest_and_analyze
-from backend.models import Email, User
+from backend.models import Email, Organization, User
 
 DEMO_USERS = (
     ("analyst@example.com", "changeme1", "analyst"),
+    ("approver@example.com", "changeme1", "admin"),
     ("user@example.com", "changeme1", "user"),
 )
 
@@ -37,10 +38,28 @@ SAMPLES = (
 def seed_demo_users() -> None:
     db = SessionLocal()
     try:
+        org = db.query(Organization).filter(Organization.slug == "default").one_or_none()
+        if org is None:
+            org = Organization(
+                slug="default",
+                name="PhishProof Demo Organisation",
+                domains=["example.com", "company-b.test"],
+            )
+            db.add(org)
+            db.flush()
         for email, password, role in DEMO_USERS:
             existing = db.query(User).filter(User.email == email).first()
             if existing is None:
-                db.add(User(email=email, hashed_password=hash_password(password), role=role))
+                db.add(
+                    User(
+                        email=email,
+                        hashed_password=hash_password(password),
+                        role=role,
+                        organization_id=org.id,
+                    )
+                )
+            elif existing.organization_id is None:
+                existing.organization_id = org.id
         db.commit()
         if db.query(Email).count() == 0:
             for sender, recipient, subject, body, direction in SAMPLES:

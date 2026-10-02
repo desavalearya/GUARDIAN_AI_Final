@@ -27,6 +27,7 @@ def _to_item(email: Email) -> EmailListItem:
         fused_risk_score=conf.fused_risk_score if conf else None,
         confidence_state=conf.confidence_state if conf else None,
         review_queue=dec.review_queue if dec else None,
+        ingestion_path=email.ingestion_path,
     )
 
 
@@ -60,6 +61,7 @@ async def upload_eml(
             direction="inbound",
             ingestion_path="soc_upload",
             default_recipient=current_user.email,
+            organization_id=current_user.organization_id,
         )
 
     email = await asyncio.to_thread(_run)
@@ -82,8 +84,13 @@ def list_emails(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("viewer", "analyst", "admin")),
 ) -> list[EmailListItem]:
-    del current_user
-    rows = db.query(Email).order_by(Email.received_at.desc()).limit(200).all()
+    rows = (
+        db.query(Email)
+        .filter(Email.organization_id == current_user.organization_id)
+        .order_by(Email.received_at.desc())
+        .limit(200)
+        .all()
+    )
     return [_to_item(e) for e in rows]
 
 
@@ -93,8 +100,14 @@ def email_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("viewer", "analyst", "admin")),
 ) -> EmailDetail:
-    del current_user
-    email = db.query(Email).filter(Email.id == email_id).one_or_none()
+    email = (
+        db.query(Email)
+        .filter(
+            Email.id == email_id,
+            Email.organization_id == current_user.organization_id,
+        )
+        .one_or_none()
+    )
     if email is None:
         raise HTTPException(status_code=404, detail="Not found")
     return serialize_email(email)
@@ -106,8 +119,11 @@ def review_queue(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("viewer", "analyst", "admin")),
 ) -> list[EmailListItem]:
-    del current_user
-    q = db.query(Email).join(Decision)
+    q = (
+        db.query(Email)
+        .join(Decision)
+        .filter(Email.organization_id == current_user.organization_id)
+    )
     if queue.upper() == "UNCERTAIN":
         q = q.filter(Decision.review_queue == "UNCERTAIN")
     elif queue.upper() == "HIGH_RISK":
@@ -124,7 +140,11 @@ def release(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("analyst", "admin")),
 ) -> EmailDetail:
-    email = db.query(Email).filter(Email.id == email_id).one_or_none()
+    email = (
+        db.query(Email)
+        .filter(Email.id == email_id, Email.organization_id == current_user.organization_id)
+        .one_or_none()
+    )
     if email is None or email.decision is None:
         raise HTTPException(status_code=404, detail="Not found")
     before = {"decision": email.decision.decision}
@@ -146,7 +166,11 @@ def block(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("analyst", "admin")),
 ) -> EmailDetail:
-    email = db.query(Email).filter(Email.id == email_id).one_or_none()
+    email = (
+        db.query(Email)
+        .filter(Email.id == email_id, Email.organization_id == current_user.organization_id)
+        .one_or_none()
+    )
     if email is None or email.decision is None:
         raise HTTPException(status_code=404, detail="Not found")
     before = {"decision": email.decision.decision}

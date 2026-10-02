@@ -29,6 +29,16 @@ services:
     networks:
       - guardian
 
+  clamav:
+    image: clamav/clamav:1.4
+    volumes:
+      - clamav_data:/var/lib/clamav
+    expose:
+      - "3310"
+    restart: unless-stopped
+    networks:
+      - guardian
+
   api:
     build:
       context: .
@@ -39,7 +49,10 @@ services:
     environment:
       POSTFIX_HOST: postfix
       POSTFIX_SUBMISSION_PORT: "587"
-      MAIL_DOMAIN: ${MAIL_DOMAIN:-guardian.local}
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
+      MAILPIT_URL: http://receiver:8025
+      DEMO_RECEIVER_ADDRESS: receiver@${DEMO_RECEIVER_DOMAIN:-company-b.test}
+      DEMO_RECEIVER_DOMAIN: ${DEMO_RECEIVER_DOMAIN:-company-b.test}
     ports:
       - "8000:8000"
     volumes:
@@ -95,6 +108,7 @@ services:
       API_HEALTH: http://api:8000/health
       MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
       MILTER_SOCKET: inet:8891
+      SMTP_SCAN_TIMEOUT_SECONDS: ${SMTP_SCAN_TIMEOUT_SECONDS:-20}
     expose:
       - "8891"
     restart: unless-stopped
@@ -115,6 +129,9 @@ services:
       RELAYHOST: ${RELAYHOST:-}
       RELAY_USER: ${RELAY_USER:-}
       RELAY_PASSWORD: ${RELAY_PASSWORD:-}
+      DEMO_RECEIVER_DOMAIN: ${DEMO_RECEIVER_DOMAIN:-company-b.test}
+      DEMO_RECEIVER_HOST: ${DEMO_RECEIVER_HOST:-receiver}
+      DEMO_RECEIVER_PORT: ${DEMO_RECEIVER_PORT:-1025}
     ports:
       # Host 2525/2587 avoid clash with other stacks on 25/587
       - "2525:25"
@@ -128,6 +145,46 @@ services:
     networks:
       - guardian
 
+  # Downstream Company B SMTP server for the end-to-end demo.
+  # Mailpit provides a real SMTP listener; UI is fronted by mailpit-ui (:8025)
+  # so we can add /compose (Mailpit has no native compose screen).
+  receiver:
+    image: axllent/mailpit:v1.21
+    environment:
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_MAX_MESSAGES: "500"
+      MP_SMTP_RELAY_HOST: postfix
+      MP_SMTP_RELAY_PORT: "25"
+      MP_SMTP_RELAY_STARTTLS: "false"
+      MP_SMTP_RELAY_AUTH: none
+      MP_SMTP_RELAY_ALLOWED_RECIPIENTS: "@example\\.com$"
+      MP_SMTP_RELAY_RETURN_PATH: receiver@${DEMO_RECEIVER_DOMAIN:-company-b.test}
+      MP_API_CORS: "*"
+    expose:
+      - "8025"
+    ports:
+      - "1025:1025"
+    restart: unless-stopped
+    depends_on:
+      - postfix
+    networks:
+      - guardian
+
+  # Same URL users already open (:8025). Proxies Mailpit + serves /compose.
+  mailpit-ui:
+    image: nginx:alpine
+    volumes:
+      - ./frontend/mailpit-extra/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/mailpit-extra/compose.html:/usr/share/nginx/html/compose.html:ro
+      - ./frontend/mailpit-extra/compose-inject.js:/usr/share/nginx/html/compose-inject.js:ro
+    ports:
+      - "8025:80"
+    depends_on:
+      - receiver
+    restart: unless-stopped
+    networks:
+      - guardian
+
   mail-client:
     image: node:20-alpine
     working_dir: /app
@@ -136,6 +193,8 @@ services:
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     environment:
       VITE_API_URL: http://localhost:8000
+      VITE_DEMO_RECIPIENT: receiver@${DEMO_RECEIVER_DOMAIN:-company-b.test}
+      VITE_MAILPIT_URL: http://localhost:8025
     ports:
       - "5173:5173"
     depends_on:
@@ -161,6 +220,7 @@ services:
 volumes:
   postgres_data:
   opendkim_keys:
+  clamav_data:
 
 networks:
   guardian:

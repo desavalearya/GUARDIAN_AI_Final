@@ -15,6 +15,7 @@ INDEPENDENT = {
     "ato_baseline",
     "recon_pixel",
     "svg_ics",
+    "dlp_policy",
 }
 
 CONTENT_AGREE = {
@@ -40,6 +41,7 @@ WEIGHTS = {
     "ato_baseline": 0.09,
     "recon_pixel": 0.06,
     "svg_ics": 0.07,
+    "dlp_policy": 0.15,
 }
 
 VARIANCE_UNCERTAIN = 0.08
@@ -89,7 +91,10 @@ def apply_booster(
     creds = by_name.get("credential_detector")
     malware = by_name.get("malware_scan")
     doc = by_name.get("doc_attachment_threat")
+    dlp = by_name.get("dlp_policy")
 
+    if direction == "outbound" and dlp and dlp.raw_score >= 0.75:
+        return 99.0 if dlp.raw_score >= 0.95 else max(risk, 93.0)
     if malware and malware.raw_score >= 0.9:
         return 99.0
     if doc and doc.raw_score >= 0.85:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import hashlib
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,19 @@ EXTRA_SAFE = {
 _booster = None
 _fe = None
 _failed = False
+_redis = None
+
+
+def _cache():
+    global _redis
+    if _redis is None:
+        try:
+            import redis
+
+            _redis = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+        except Exception:
+            return None
+    return _redis
 
 
 def url_v1_dir() -> Path:
@@ -85,6 +99,16 @@ def _host_safe(url: str) -> bool:
 def score_url(url: str) -> float:
     import xgboost as xgb
 
+    cache_key = "url:v1:" + hashlib.sha256(url.encode("utf-8", errors="replace")).hexdigest()
+    cache = _cache()
+    if cache is not None:
+        try:
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return float(cached)
+        except Exception:
+            pass
+
     bst = _ensure()
     assert _fe is not None
     feats_df = _fe.featurize_dataframe([url])
@@ -96,7 +120,13 @@ def score_url(url: str) -> float:
     f = _fe.extract_url_features(url)
     if _known_good(f) or _host_safe(url):
         raw = min(raw, COMMON_DOMAIN_CAP)
-    return float(min(1.0, max(0.0, raw)))
+    result = float(min(1.0, max(0.0, raw)))
+    if cache is not None:
+        try:
+            cache.setex(cache_key, settings.url_cache_ttl_seconds, str(result))
+        except Exception:
+            pass
+    return result
 
 
 def score_urls(urls: list[str]) -> list[float]:

@@ -7,7 +7,10 @@ type Item = {
   id: string;
   received_at: string;
   sender_address: string;
+  recipient_address?: string;
   subject: string;
+  direction?: string;
+  ingestion_path?: string | null;
   decision?: string | null;
   fused_risk_score?: number | null;
   confidence_state?: string | null;
@@ -23,6 +26,22 @@ type Detail = Item & {
   case_ref?: string | null;
   vault_preserved?: boolean;
   custody?: { action: string; role: string; at: string }[];
+  analysis_mode?: string;
+  fast_path_ms?: number;
+  deep_path_ms?: number;
+  total_analysis_ms?: number;
+  deep_status?: string;
+  models_run?: string[];
+  siem_status?: string;
+  unlock_status?: string | null;
+  fraud_dna?: {
+    fuzzy_hash: string;
+    embedding_version: string;
+    technique_tags: string[];
+    infrastructure_keys: string[];
+    nearest_email_id?: string | null;
+    similarity: number;
+  } | null;
 };
 
 type CaseRow = {
@@ -37,8 +56,20 @@ type CaseRow = {
   district: string;
 };
 
-type Campaign = { id: string; name: string; keys: string[]; email_count: number; subjects: string[] };
+type Campaign = {
+  id: string;
+  name: string;
+  keys: string[];
+  email_count: number;
+  subjects: string[];
+  dna_summary?: Record<string, unknown>;
+  growth_rate_flag?: boolean;
+};
 type MapPoint = { id: string; lat: number; lon: number; label: string; asn: string; class: string; decision?: string | null };
+type CampaignGraph = {
+  nodes: { id: string; kind: "campaign" | "email"; label: string; decision?: string; count?: number; growth_rate_flag?: boolean }[];
+  edges: { source: string; target: string; kind: string; weight?: number }[];
+};
 
 async function api(path: string, token: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
@@ -57,17 +88,70 @@ function pill(decision?: string | null) {
   return "pill bad";
 }
 
+function CampaignGraphView({ graph }: { graph: CampaignGraph }) {
+  const nodes = graph.nodes.slice(0, 24);
+  const width = 760;
+  const height = 360;
+  const positions = new Map(
+    nodes.map((node, index) => {
+      const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
+      const radius = node.kind === "campaign" ? 95 : 145;
+      return [
+        node.id,
+        {
+          x: width / 2 + Math.cos(angle) * radius,
+          y: height / 2 + Math.sin(angle) * radius,
+        },
+      ] as const;
+    })
+  );
+  if (!nodes.length) {
+    return <div className="empty-state">Upload related suspicious emails to build the Fraud DNA graph.</div>;
+  }
+  return (
+    <svg className="campaign-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Fraud DNA campaign graph">
+      {graph.edges.map((edge, index) => {
+        const from = positions.get(edge.source);
+        const to = positions.get(edge.target);
+        if (!from || !to) return null;
+        return (
+          <line
+            key={`${edge.source}-${edge.target}-${index}`}
+            x1={from.x}
+            y1={from.y}
+            x2={to.x}
+            y2={to.y}
+            className={edge.kind === "dna_similarity" ? "dna-edge" : "member-edge"}
+          />
+        );
+      })}
+      {nodes.map((node) => {
+        const pos = positions.get(node.id)!;
+        return (
+          <g key={node.id} transform={`translate(${pos.x},${pos.y})`}>
+            <circle r={node.kind === "campaign" ? 26 : 18} className={`graph-circle ${node.kind}`} />
+            <text y={node.kind === "campaign" ? 40 : 31} textAnchor="middle">
+              {node.label.slice(0, 22)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function App() {
   const [email, setEmail] = useState("analyst@example.com");
   const [password, setPassword] = useState("changeme1");
   const [token, setToken] = useState(localStorage.getItem("soc_token") || "");
-  const [tab, setTab] = useState<"threats" | "high" | "uncertain" | "cases" | "map" | "lab">("threats");
+  const [tab, setTab] = useState<"threats" | "high" | "uncertain" | "cases" | "map" | "mail" | "sent" | "lab">("threats");
   const [rows, setRows] = useState<Item[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   const [alerts, setAlerts] = useState<{ count: number; items: { id: string; subject: string; decision?: string; from: string }[] }>({ count: 0, items: [] });
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignGraph, setCampaignGraph] = useState<CampaignGraph>({ nodes: [], edges: [] });
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [reportOut, setReportOut] = useState("");
   const [intake, setIntake] = useState({ victim_mobile: "", amount_lost: "", bank: "", incident_date: "", district: "MH" });
@@ -117,6 +201,7 @@ export default function App() {
       }
       if (tab === "map") {
         setCampaigns(await api("/api/v1/soc/campaigns", token));
+        setCampaignGraph(await api("/api/v1/soc/campaigns/graph", token));
         setPoints(await api("/api/v1/soc/map-points", token));
         setDetail(null);
         return;
@@ -210,6 +295,8 @@ export default function App() {
             ["uncertain", t.navUncertain],
             ["cases", t.navCases],
             ["map", t.navMap],
+            ["mail", "Inbox"],
+            ["sent", "Sent"],
             ["lab", t.navModelLab],
           ] as const
         ).map(([id, label]) => (
@@ -243,8 +330,22 @@ export default function App() {
       <main className="main">
         <div className="hero">
           <div>
-            <h1>{tab === "lab" ? t.heroTitleLab : t.heroTitleThreats}</h1>
-            <p>{t.heroSubtitle}</p>
+            <h1>
+              {tab === "lab"
+                ? t.heroTitleLab
+                : tab === "mail"
+                  ? "Inbox"
+                  : tab === "sent"
+                    ? "Sent"
+                    : t.heroTitleThreats}
+            </h1>
+            <p>
+              {tab === "mail"
+                ? "Received mail only. Messages composed in Mailpit are listed under Sent."
+                : tab === "sent"
+                  ? "Mail sent from Company B (Mailpit) through Guardian."
+                  : t.heroSubtitle}
+            </p>
           </div>
         </div>
 
@@ -295,18 +396,90 @@ export default function App() {
               </tbody>
             </table>
           ) : tab === "map" ? (
+            <div className="intel-layout">
+              <section className="intel-card">
+                <div className="section-heading">
+                  <div><span className="eyebrow">Infrastructure intelligence</span><h3>Probable relay origin</h3></div>
+                  <span className="status-chip">{points.length} mapped</span>
+                </div>
+                <div id="pp-map" className="map-box" />
+                <p className="section-note">{t.originDisclaimer}</p>
+              </section>
+              <section className="intel-card">
+                <div className="section-heading">
+                  <div><span className="eyebrow">Fraud DNA</span><h3>Campaign relationships</h3></div>
+                  <span className="status-chip">{campaignGraph.edges.length} links</span>
+                </div>
+                <CampaignGraphView graph={campaignGraph} />
+                <div className="campaign-list">
+                  {campaigns.map((c) => (
+                    <article key={c.id} className="campaign-row">
+                      <div>
+                        <strong>{c.name}</strong>
+                        <span>{c.email_count} messages · {(c.keys || []).slice(0, 3).join(" · ")}</span>
+                      </div>
+                      {c.growth_rate_flag && <span className="pill bad">Growing</span>}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : tab === "mail" || tab === "sent" ? (
             <div>
-              <div id="pp-map" className="map-box" />
-              <div style={{ padding: 14 }}>
-                <h3>Campaign graph</h3>
-                {campaigns.map((c) => (
-                  <div key={c.id} style={{ marginBottom: 10 }}>
-                    <span className="graph-node">{c.name} · {c.email_count} mails</span>
-                    <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>{(c.keys || []).join(" · ")}</div>
-                  </div>
-                ))}
-                <p style={{ color: "var(--muted)", fontSize: 13 }}>{t.originDisclaimer}</p>
+              <div className="section-heading" style={{ marginBottom: 12 }}>
+                <div>
+                  <span className="eyebrow">Guardian ↔ Company B</span>
+                  <h3>{tab === "sent" ? "Sent from Company B" : "Inbox"}</h3>
+                </div>
+                <span className="status-chip">
+                  {(tab === "sent"
+                    ? rows.filter((r) => (r.sender_address || "").toLowerCase().endsWith("@company-b.test"))
+                    : rows.filter((r) => !(r.sender_address || "").toLowerCase().endsWith("@company-b.test"))
+                  ).length}{" "}
+                  messages
+                </span>
               </div>
+              <p className="section-note" style={{ marginBottom: 16 }}>
+                {tab === "sent"
+                  ? "These were composed in Mailpit and released through Guardian. They stay out of the Mailpit inbox."
+                  : "Received mail. Company B messages you send from Mailpit appear under Sent."}
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Direction</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Subject</th>
+                    <th>Path</th>
+                    <th>Decision</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(tab === "sent"
+                    ? rows.filter((r) => (r.sender_address || "").toLowerCase().endsWith("@company-b.test"))
+                    : rows.filter((r) => !(r.sender_address || "").toLowerCase().endsWith("@company-b.test"))
+                  ).map((r) => (
+                    <tr
+                      key={r.id}
+                      onClick={async () => {
+                        setTab("threats");
+                        setReportOut("");
+                        setDetail(await api(`/api/v1/soc/emails/${r.id}`, token));
+                      }}
+                    >
+                      <td>{r.received_at?.slice(0, 19).replace("T", " ")}</td>
+                      <td><span className="status-chip">{r.direction || "—"}</span></td>
+                      <td>{r.sender_address}</td>
+                      <td>{r.recipient_address || "—"}</td>
+                      <td>{r.subject}</td>
+                      <td>{r.ingestion_path || "—"}</td>
+                      <td><span className={pill(r.decision)}>{r.decision}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : tab === "lab" ? (
             <div className="lab">
@@ -486,8 +659,29 @@ export default function App() {
               </table>
               {detail && (
                 <div className="detail">
-                  <h2 style={{ marginTop: 0 }}>{detail.subject}</h2>
-                  <p style={{ color: "var(--muted)" }}>{detail.body_plain}</p>
+                  <div className="detail-heading">
+                    <div>
+                      <span className="eyebrow">Message investigation</span>
+                      <h2>{detail.subject}</h2>
+                      <p>{detail.sender_address}</p>
+                    </div>
+                    <div className="decision-stack">
+                      <span className={pill(detail.decision)}>{detail.decision}</span>
+                      <strong>{detail.fused_risk_score ?? "—"} <small>evidence score</small></strong>
+                    </div>
+                  </div>
+                  <div className="pipeline-strip">
+                    <div><span>Analysis</span><strong>{detail.analysis_mode || "full"}</strong></div>
+                    <div><span>Fast path</span><strong>{detail.fast_path_ms ?? 0} ms</strong></div>
+                    <div><span>Deep path</span><strong>{detail.deep_path_ms ?? 0} ms</strong></div>
+                    <div><span>Total</span><strong>{detail.total_analysis_ms ?? 0} ms</strong></div>
+                    <div><span>Deep status</span><strong>{detail.deep_status || "complete"}</strong></div>
+                    <div><span>SIEM</span><strong>{detail.siem_status || "disabled"}</strong></div>
+                  </div>
+                  <section className="message-preview">
+                    <span className="eyebrow">Redacted message body</span>
+                    <p>{detail.body_plain}</p>
+                  </section>
                   <div className="report-actions" style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "12px 0 16px" }}>
                     <button
                       className="btn btn-primary"
@@ -520,22 +714,59 @@ export default function App() {
                     >
                       {t.btnPreserve}
                     </button>
-                    <button
-                      className="btn btn-danger"
-                      type="button"
-                      onClick={async () => {
-                        const out = await api(`/api/v1/soc/emails/${detail.id}/unlock`, token, { method: "POST" });
-                        setReportOut(
-                          JSON.stringify(
-                            { unlocked: true, warning: out.warning, preview: String(out.raw_message || "").slice(0, 400) },
-                            null,
-                            2
-                          )
-                        );
-                      }}
-                    >
-                      {t.btnUnlock}
-                    </button>
+                    {!detail.unlock_status && (
+                      <button
+                        className="btn btn-soft"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await api(`/api/v1/soc/emails/${detail.id}/unlock/request`, token, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ justification: "Forensic review of preserved exhibit" }),
+                            });
+                            setDetail(await api(`/api/v1/soc/emails/${detail.id}`, token));
+                          } catch (e) { setErr(String(e)); }
+                        }}
+                      >
+                        Request raw access
+                      </button>
+                    )}
+                    {detail.unlock_status === "pending" && (
+                      <button
+                        className="btn btn-soft"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await api(`/api/v1/soc/emails/${detail.id}/unlock/approve`, token, { method: "POST" });
+                            setDetail(await api(`/api/v1/soc/emails/${detail.id}`, token));
+                          } catch (e) { setErr(String(e)); }
+                        }}
+                      >
+                        Approve as second analyst
+                      </button>
+                    )}
+                    {detail.unlock_status === "approved" && (
+                      <button
+                        className="btn btn-danger"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const out = await api(`/api/v1/soc/emails/${detail.id}/unlock`, token, { method: "POST" });
+                            setReportOut(
+                              JSON.stringify(
+                                { unlocked: true, warning: out.warning, preview: String(out.raw_message || "").slice(0, 400) },
+                                null,
+                                2
+                              )
+                            );
+                            setDetail(await api(`/api/v1/soc/emails/${detail.id}`, token));
+                          } catch (e) { setErr(String(e)); }
+                        }}
+                      >
+                        {t.btnUnlock}
+                      </button>
+                    )}
                     <button
                       className="btn btn-soft"
                       type="button"
@@ -586,6 +817,29 @@ export default function App() {
                       {reportOut}
                     </pre>
                   )}
+                  <div className="evidence-summary">
+                    <section className="summary-card">
+                      <span className="eyebrow">Models actually executed</span>
+                      <div className="tag-list">
+                        {(detail.models_run || []).map((model) => <span key={model}>{model}</span>)}
+                        {!detail.models_run?.length && <em>No model metadata</em>}
+                      </div>
+                    </section>
+                    <section className="summary-card">
+                      <span className="eyebrow">Fraud DNA</span>
+                      {detail.fraud_dna ? (
+                        <>
+                          <strong>{Math.round((detail.fraud_dna.similarity || 0) * 100)}% nearest-case similarity</strong>
+                          <div className="tag-list">
+                            {(detail.fraud_dna.technique_tags || []).map((tag) => <span key={tag}>{tag}</span>)}
+                          </div>
+                          <small>Fingerprint {detail.fraud_dna.fuzzy_hash} · {detail.fraud_dna.embedding_version}</small>
+                        </>
+                      ) : (
+                        <p>Generated asynchronously for review/quarantine/block decisions.</p>
+                      )}
+                    </section>
+                  </div>
                   {(() => {
                     const origin = detail.detectors.find((d) => d.detector_name === "origin_infra");
                     const ev = (origin?.evidence || {}) as Record<string, unknown>;
@@ -613,6 +867,10 @@ export default function App() {
                       </div>
                     );
                   })()}
+                  <div className="section-heading compact">
+                    <div><span className="eyebrow">Explainability</span><h3>Detector evidence</h3></div>
+                    <span className="status-chip">{detail.detectors.length} signals</span>
+                  </div>
                   <div className="grid">
                     {detail.detectors.map((d) => (
                       <div className="det" key={d.detector_name}>
@@ -623,6 +881,10 @@ export default function App() {
                         <div style={{ color: "var(--muted)", marginTop: 6 }}>{d.explanation}</div>
                       </div>
                     ))}
+                  </div>
+                  <div className="section-heading compact">
+                    <div><span className="eyebrow">Cyber Cell workflow</span><h3>Complaint intake</h3></div>
+                    {detail.case_ref && <span className="status-chip">{detail.case_ref}</span>}
                   </div>
                   <div className="intake">
                     <input placeholder="Victim mobile" value={intake.victim_mobile} onChange={(e) => setIntake({ ...intake, victim_mobile: e.target.value })} />
@@ -647,6 +909,19 @@ export default function App() {
                   {detail.case_ref && <p>Case {detail.case_ref} · evidence {detail.evidence_sha256?.slice(0, 16)}…</p>}
                   {detail.secret_flags && Object.values(detail.secret_flags).some(Boolean) && (
                     <p style={{ color: "var(--muted)" }}>Secrets tokenised (flags only, no digits stored).</p>
+                  )}
+                  {!!detail.custody?.length && (
+                    <section className="custody">
+                      <span className="eyebrow">Chain of custody</span>
+                      <div className="custody-list">
+                        {detail.custody.slice().reverse().slice(0, 8).map((event, index) => (
+                          <div key={`${event.action}-${event.at}-${index}`}>
+                            <strong>{event.action.replaceAll("_", " ")}</strong>
+                            <span>{event.role || "system"} · {new Date(event.at).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   )}
                 </div>
               )}

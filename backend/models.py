@@ -8,6 +8,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
 
 
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    domains: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -15,6 +27,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="analyst")
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -62,6 +77,16 @@ class Email(Base):
     secret_flags: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     hmac_tokens: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     retention_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    analysis_mode: Mapped[str] = mapped_column(String(16), nullable=False, default="adaptive")
+    fast_path_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deep_path_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_analysis_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deep_status: Mapped[str] = mapped_column(String(16), nullable=False, default="complete")
+    models_run: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    siem_status: Mapped[str] = mapped_column(String(16), nullable=False, default="disabled")
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True
+    )
     campaign_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("campaigns.id"), nullable=True
     )
@@ -88,6 +113,12 @@ class Email(Base):
     )
     custody_events: Mapped[list["CustodyEvent"]] = relationship(
         back_populates="email", cascade="all, delete-orphan"
+    )
+    unlock_requests: Mapped[list["UnlockRequest"]] = relationship(
+        back_populates="email", cascade="all, delete-orphan"
+    )
+    fraud_dna: Mapped["FraudFingerprint | None"] = relationship(
+        back_populates="email", uselist=False, cascade="all, delete-orphan"
     )
 
 
@@ -189,11 +220,36 @@ class Campaign(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(128), nullable=False, default="")
     keys: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    dna_summary: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    growth_rate_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     emails: Mapped[list[Email]] = relationship(back_populates="campaign")
+
+
+class FraudFingerprint(Base):
+    __tablename__ = "fraud_fingerprints"
+
+    email_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("emails.id"), primary_key=True
+    )
+    fuzzy_hash: Mapped[str] = mapped_column(String(32), nullable=False)
+    embedding: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    embedding_version: Mapped[str] = mapped_column(String(64), nullable=False, default="hashing-char-v1")
+    technique_tags: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    infrastructure_keys: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    nearest_email_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    similarity: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    email: Mapped[Email] = relationship(back_populates="fraud_dna")
 
 
 class ComplaintCase(Base):
@@ -248,6 +304,26 @@ class CustodyEvent(Base):
     email: Mapped[Email] = relationship(back_populates="custody_events")
 
 
+class UnlockRequest(Base):
+    __tablename__ = "unlock_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("emails.id"), nullable=False, index=True
+    )
+    requested_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    justification: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    email: Mapped[Email] = relationship(back_populates="unlock_requests")
+
+
 class DlpPolicy(Base):
     __tablename__ = "dlp_policies"
 
@@ -256,3 +332,6 @@ class DlpPolicy(Base):
     pattern: Mapped[str] = mapped_column(String(256), nullable=False)
     action: Mapped[str] = mapped_column(String(32), nullable=False, default="quarantine")
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True
+    )

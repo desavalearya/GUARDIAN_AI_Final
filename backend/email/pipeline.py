@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 from backend.cases.service import add_custody, attach_campaign, ensure_case, store_vault
 from backend.config import settings
 from backend.detection.types import DetectorOutput
-from backend.detection.engine import run_all_detectors
-from backend.detection.qr import enrich_parsed_with_qr
+from backend.detection.orchestrator import DetectionRun, run_detection
 from backend.email.parser import ParsedEmail, parse_raw_email
 from backend.models import (
     AuditLog,
@@ -19,6 +18,7 @@ from backend.models import (
     Email,
     EmailAttachment,
     EmailUrl,
+    Organization,
 )
 from backend.privacy.redact import evidence_sha256, redact_text, redact_url, sanitize_evidence
 from backend.risk.engine import apply_booster, compute_confidence, compute_risk, decide
@@ -48,6 +48,8 @@ def persist_parsed(
     flags: dict,
     tokens: dict,
     is_duplicate: bool = False,
+    detection_run: DetectionRun | None = None,
+    organization_id: uuid.UUID | None = None,
 ) -> Email:
     body = redact_text(parsed.body_plain)
     html = redact_text(parsed.body_html or "")
@@ -78,6 +80,13 @@ def persist_parsed(
         secret_flags=flags,
         hmac_tokens=tokens,
         retention_days=30,
+        analysis_mode=detection_run.analysis_mode if detection_run else "full",
+        fast_path_ms=detection_run.fast_path_ms if detection_run else 0,
+        deep_path_ms=detection_run.deep_path_ms if detection_run else 0,
+        total_analysis_ms=detection_run.total_ms if detection_run else 0,
+        deep_status=detection_run.deep_status if detection_run else "complete",
+        models_run=detection_run.models_run if detection_run else [],
+        organization_id=organization_id,
     )
     db.add(email)
     db.flush()
@@ -131,21 +140,19 @@ def save_decision(
     risk = apply_booster(risk, outputs, email.direction)
     decision_value, queue = decide(risk, state)
 
-    conf = ConfidenceScore(
-        email_id=email.id,
-        fused_risk_score=risk,
-        confidence_state=state,
-        agreement_metric=variance,
-        contributing_detectors=contrib,
-        fusion_method_version="weighted-v1",
-    )
-    dec = Decision(
-        email_id=email.id,
-        decision=decision_value,
-        review_queue=queue,
-    )
-    db.add(conf)
-    db.add(dec)
+    conf = email.confidence or ConfidenceScore(email_id=email.id)
+    conf.fused_risk_score = risk
+    conf.confidence_state = state
+    conf.agreement_metric = variance
+    conf.contributing_detectors = contrib
+    conf.fusion_method_version = "weighted-v1"
+    dec = email.decision or Decision(email_id=email.id)
+    dec.decision = decision_value
+    dec.review_queue = queue
+    if email.confidence is None:
+        db.add(conf)
+    if email.decision is None:
+        db.add(dec)
     email.status = "decided"
     return dec
 
@@ -156,6 +163,7 @@ def ingest_and_analyze(
     direction: str = "inbound",
     ingestion_path: str = "api",
     default_recipient: str = "user@example.com",
+    organization_id: uuid.UUID | None = None,
 ) -> Email:
     raw_bytes = raw.encode("utf-8", errors="replace") if isinstance(raw, str) else raw
     evidence_id = evidence_sha256(raw_bytes)
@@ -165,8 +173,33 @@ def ingest_and_analyze(
     is_dup = bool(r.get(cache_key))
 
     parsed = parse_raw_email(raw, default_recipient=default_recipient)
-    enrich_parsed_with_qr(parsed)
-    outputs = run_all_detectors(parsed, direction)
+    if organization_id is None:
+        recipient_domain = (
+            parsed.recipient_address.rsplit("@", 1)[-1].lower()
+            if "@" in parsed.recipient_address
+            else ""
+        )
+        organizations = db.query(Organization).all()
+        organization = next(
+            (org for org in organizations if recipient_domain in (org.domains or [])),
+            None,
+        ) or next(
+            (org for org in organizations if org.slug == settings.default_org_slug),
+            None,
+        )
+        organization_id = organization.id if organization else None
+    detection_run = run_detection(parsed, direction)
+    from backend.detection.dlp import run_dlp
+    from backend.models import DlpPolicy
+
+    dlp_query = db.query(DlpPolicy).filter(DlpPolicy.enabled.is_(True))
+    if organization_id:
+        dlp_query = dlp_query.filter(DlpPolicy.organization_id == organization_id)
+    dlp_output = run_dlp(parsed, direction, dlp_query.all())
+    detection_run.outputs.append(dlp_output)
+    if dlp_output.verdict != "not_applicable":
+        detection_run.models_run = sorted(set(detection_run.models_run) | {dlp_output.model_version})
+    outputs = detection_run.outputs
     redacted = redact_text(f"{parsed.subject}\n{parsed.body_plain}")
     email = persist_parsed(
         db,
@@ -177,11 +210,14 @@ def ingest_and_analyze(
         flags=redacted.flags,
         tokens=redacted.tokens,
         is_duplicate=is_dup,
+        detection_run=detection_run,
+        organization_id=organization_id,
     )
     store_vault(db, email, raw_bytes)
     add_custody(db, email.id, "ingested", role="system", detail={"path": ingestion_path})
     save_detectors(db, email.id, outputs)
     save_decision(db, email, outputs)
+    email.siem_status = "queued" if settings.siem_webhook_url else "disabled"
     db.flush()
     email = db.query(Email).filter(Email.id == email.id).one()
     attach_campaign(db, email)
@@ -205,6 +241,35 @@ def ingest_and_analyze(
         r.setex(cache_key, 60 * 60 * 24 * 7, str(email.id))
     except Exception:
         pass
+    if email.deep_status == "queued":
+        try:
+            from backend.workers.tasks import deep_analyze_email
+
+            deep_analyze_email.delay(str(email.id))
+        except Exception:
+            # Fast-path delivery must not fail just because the async worker is unavailable.
+            email.deep_status = "deferred"
+            db.commit()
+    if settings.siem_webhook_url:
+        try:
+            from backend.workers.tasks import emit_siem_event
+
+            emit_siem_event.delay(str(email.id))
+        except Exception:
+            email.siem_status = "failed"
+            db.commit()
+    if email.decision and email.decision.decision in {
+        "HARD_BLOCK",
+        "BLOCK",
+        "QUARANTINE",
+        "HUMAN_REVIEW",
+    }:
+        try:
+            from backend.workers.tasks import generate_fraud_dna
+
+            generate_fraud_dna.delay(str(email.id))
+        except Exception:
+            pass
     return email
 
 

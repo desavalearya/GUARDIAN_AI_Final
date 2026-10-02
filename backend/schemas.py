@@ -50,6 +50,15 @@ class ComposeRequest(BaseModel):
     body: str = Field(max_length=500_000)
 
 
+class PeerComposeRequest(BaseModel):
+    """Company B (Mailpit side) → Guardian mailbox."""
+
+    recipient: EmailStr | None = None
+    subject: str = Field(min_length=1, max_length=998, pattern=r"^[^\r\n]*$")
+    body: str = Field(max_length=500_000)
+    mirror_to_mailpit: bool = True
+
+
 class IngestRawRequest(BaseModel):
     raw_message: str = Field(max_length=15_000_000)
     direction: str = Field(default="inbound", pattern="^(inbound|outbound)$")
@@ -76,6 +85,7 @@ class EmailListItem(BaseModel):
     fused_risk_score: float | None = None
     confidence_state: str | None = None
     review_queue: str | None = None
+    ingestion_path: str | None = None
 
 
 class EmailDetail(BaseModel):
@@ -86,6 +96,7 @@ class EmailDetail(BaseModel):
     recipient_address: str
     subject: str
     body_plain: str
+    raw_headers: str = ""
     direction: str
     ingestion_path: str
     is_duplicate: bool
@@ -104,6 +115,15 @@ class EmailDetail(BaseModel):
     secret_flags: dict = {}
     hmac_token_keys: list[str] = []
     retention_days: int = 30
+    analysis_mode: str = "adaptive"
+    fast_path_ms: int = 0
+    deep_path_ms: int = 0
+    total_analysis_ms: int = 0
+    deep_status: str = "complete"
+    models_run: list[str] = []
+    siem_status: str = "disabled"
+    unlock_status: str | None = None
+    fraud_dna: dict | None = None
     campaign_id: UUID | None = None
     case_ref: str | None = None
     vault_preserved: bool = False

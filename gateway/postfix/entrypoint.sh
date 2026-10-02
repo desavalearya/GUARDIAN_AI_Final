@@ -7,6 +7,9 @@ SELECTOR="${DKIM_SELECTOR:-guardian}"
 RELAYHOST="${RELAYHOST:-}"
 RELAY_USER="${RELAY_USER:-}"
 RELAY_PASSWORD="${RELAY_PASSWORD:-}"
+DEMO_RECEIVER_DOMAIN="${DEMO_RECEIVER_DOMAIN:-company-b.test}"
+DEMO_RECEIVER_HOST="${DEMO_RECEIVER_HOST:-receiver}"
+DEMO_RECEIVER_PORT="${DEMO_RECEIVER_PORT:-1025}"
 
 # TLS snakeoil if missing
 if [ ! -f /etc/ssl/certs/ssl-cert-snakeoil.pem ]; then
@@ -33,6 +36,14 @@ if [ -n "$RELAYHOST" ]; then
   fi
 else
   postconf -e "relayhost ="
+fi
+
+# Route the demo organisation's domain through PhishProof to its downstream SMTP server.
+# This preserves the normal relayhost behavior for every other domain.
+if [ -n "${DEMO_RECEIVER_DOMAIN}" ] && [ -n "${DEMO_RECEIVER_HOST}" ]; then
+  echo "${DEMO_RECEIVER_DOMAIN} smtp:[${DEMO_RECEIVER_HOST}]:${DEMO_RECEIVER_PORT}" > /etc/postfix/transport
+  postmap /etc/postfix/transport
+  postconf -e "transport_maps = hash:/etc/postfix/transport"
 fi
 
 # Virtual aliases so local domain recipients land on catchall user

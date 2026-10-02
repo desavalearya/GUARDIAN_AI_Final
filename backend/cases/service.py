@@ -48,7 +48,10 @@ def attach_campaign(db: Session, email: Email) -> Campaign | None:
     if not keys:
         return None
     found = None
-    for camp in db.query(Campaign).all():
+    campaign_query = db.query(Campaign)
+    if email.organization_id:
+        campaign_query = campaign_query.filter(Campaign.organization_id == email.organization_id)
+    for camp in campaign_query.all():
         existing = set((camp.keys or {}).get("keys") or [])
         if existing & set(keys):
             found = camp
@@ -56,7 +59,11 @@ def attach_campaign(db: Session, email: Email) -> Campaign | None:
             camp.keys = {"keys": merged}
             break
     if found is None:
-        found = Campaign(name=keys[0], keys={"keys": keys})
+        found = Campaign(
+            name=keys[0],
+            keys={"keys": keys},
+            organization_id=email.organization_id,
+        )
         db.add(found)
         db.flush()
     email.campaign_id = found.id

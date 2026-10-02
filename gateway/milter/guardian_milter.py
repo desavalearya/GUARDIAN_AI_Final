@@ -16,6 +16,7 @@ log = logging.getLogger("guardian-milter")
 INGEST_URL = os.environ.get("INGEST_URL", "http://api:8000/api/v1/ingest/raw")
 INGEST_KEY = os.environ.get("INGEST_API_KEY", "dev-ingest-key")
 MAIL_DOMAIN = os.environ.get("MAIL_DOMAIN", "guardian.local")
+SCAN_TIMEOUT = float(os.environ.get("SMTP_SCAN_TIMEOUT_SECONDS", "20"))
 
 
 class GuardianMilter(Milter.Base):
@@ -68,7 +69,7 @@ class GuardianMilter(Milter.Base):
 
         decision = "PASS"
         try:
-            with httpx.Client(timeout=60.0) as client:
+            with httpx.Client(timeout=SCAN_TIMEOUT) as client:
                 resp = client.post(
                     INGEST_URL,
                     json={
@@ -86,6 +87,8 @@ class GuardianMilter(Milter.Base):
                 decision = (data.get("decision") or "PASS").upper()
                 risk = data.get("fused_risk_score")
                 conf = data.get("confidence_state")
+                deep_status = data.get("deep_status")
+                total_ms = data.get("total_analysis_ms")
                 log.info(
                     "scanned from=%s direction=%s decision=%s risk=%s conf=%s",
                     self.mail_from,
@@ -100,6 +103,10 @@ class GuardianMilter(Milter.Base):
                     self.addheader("X-Guardian-Risk", str(risk))
                 if conf:
                     self.addheader("X-Guardian-Confidence", str(conf))
+                if deep_status:
+                    self.addheader("X-Guardian-Deep-Status", str(deep_status))
+                if total_ms is not None:
+                    self.addheader("X-Guardian-Analysis-Ms", str(total_ms))
         except Exception:
             log.exception("ingest failed")
             self.setreply("451", "4.7.1", "Guardian scan failed")

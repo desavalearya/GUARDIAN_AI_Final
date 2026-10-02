@@ -287,19 +287,59 @@ def run_malware(parsed: ParsedEmail) -> DetectorOutput:
         )
     eicar = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!"
     hits = []
+    scanners: list[str] = ["heuristic"]
     for att in parsed.attachments:
         if eicar in att.payload or att.filename.upper().endswith(".EICAR"):
             hits.append(att.filename)
         if att.filename.lower().endswith((".exe", ".dll", ".scr", ".js")):
             hits.append(att.filename)
+    try:
+        from io import BytesIO
+
+        import clamd
+
+        from backend.config import settings
+
+        if settings.clamav_enabled:
+            client = clamd.ClamdNetworkSocket(
+                settings.clamav_host,
+                settings.clamav_port,
+                timeout=settings.clamav_timeout_seconds,
+            )
+            client.ping()
+            scanners.append("clamav")
+            for att in parsed.attachments:
+                result = client.instream(BytesIO(att.payload))
+                state, signature = (result or {}).get("stream", ("OK", None))
+                if state == "FOUND":
+                    hits.append(f"{att.filename}:clamav:{signature}")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("ClamAV unavailable; retaining local attachment checks: %s", exc)
+    try:
+        from pathlib import Path
+
+        import yara
+
+        from backend.config import settings
+
+        rules_dir = Path(settings.yara_rules_path)
+        files = {path.stem: str(path) for path in rules_dir.glob("*.yar")}
+        if files:
+            rules = yara.compile(filepaths=files)
+            scanners.append("yara")
+            for att in parsed.attachments:
+                for match in rules.match(data=att.payload, timeout=3):
+                    hits.append(f"{att.filename}:yara:{match.rule}")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("YARA unavailable; retaining local attachment checks: %s", exc)
     score = 0.98 if hits else 0.08
     return DetectorOutput(
         detector_name="malware_scan",
         raw_score=score,
         verdict=_verdict(score),
-        explanation="EICAR/executable signature hit." if hits else "No signature hits (heuristic; ClamAV not wired).",
-        evidence={"hits": hits},
-        model_version="heuristic-malware-v1",
+        explanation="Attachment malware signature/policy hit." if hits else "No attachment malware signature hit.",
+        evidence={"hits": hits, "scanners": scanners},
+        model_version="+".join(scanners) + "-v1",
     )
 
 
@@ -436,16 +476,15 @@ def run_doc_attachment(parsed: ParsedEmail) -> DetectorOutput:
     )
 
 
-def run_all_detectors(parsed: ParsedEmail, direction: str) -> list[DetectorOutput]:
+def run_fast_detectors(parsed: ParsedEmail, direction: str) -> list[DetectorOutput]:
+    """Low-latency detectors suitable for the synchronous SMTP path."""
     qr_report = enrich_parsed_with_qr(parsed)
     return [
         run_sender_auth(parsed),
-        run_phishing_text(parsed),
         run_url_model(parsed),
         run_credentials(parsed, direction),
         run_image_qr(parsed, qr_report),
         run_malware(parsed),
-        run_doc_attachment(parsed),
         run_origin_infra(parsed),
         run_impersonation(parsed),
         run_recon_pixel(parsed),
@@ -453,3 +492,16 @@ def run_all_detectors(parsed: ParsedEmail, direction: str) -> list[DetectorOutpu
         run_lure_heuristics(parsed),
         run_ato_baseline(parsed),
     ]
+
+
+def run_deep_detectors(parsed: ParsedEmail) -> list[DetectorOutput]:
+    """Expensive model detectors, invoked only when the orchestrator requests them."""
+    return [
+        run_phishing_text(parsed),
+        run_doc_attachment(parsed),
+    ]
+
+
+def run_all_detectors(parsed: ParsedEmail, direction: str) -> list[DetectorOutput]:
+    """Compatibility path used by full-analysis and Model Lab callers."""
+    return run_fast_detectors(parsed, direction) + run_deep_detectors(parsed)

@@ -7,11 +7,14 @@ from backend.api.auth import router as auth_router
 from backend.api.health import router as health_router
 from backend.api.ingest import router as ingest_router
 from backend.api.lab import router as lab_router
+from backend.api.links import router as links_router
 from backend.api.mailbox import router as mailbox_router
 from backend.api.cases import router as cases_router
+from backend.api.connectors import router as connectors_router
 from backend.api.soc import router as soc_router
 from backend.api.tasks import router as tasks_router
 from backend.config import settings
+from backend.middleware import RedisRateLimitMiddleware
 from backend.seed import seed_demo_users
 
 
@@ -22,6 +25,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version="0.2.0", lifespan=lifespan)
+app.add_middleware(RedisRateLimitMiddleware)
 _cors = [o.strip() for o in (settings.cors_origins or "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -36,10 +40,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(health_router)
+app.include_router(links_router)
 app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(ingest_router)
 app.include_router(mailbox_router)
 app.include_router(soc_router)
 app.include_router(cases_router)
+app.include_router(connectors_router)
 app.include_router(lab_router)

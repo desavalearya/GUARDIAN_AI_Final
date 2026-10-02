@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Company B · Send mail</title>
+  <style>
+    :root {
+      --bg: #1b1f24;
+      --panel: #22272e;
+      --line: #3a424d;
+      --ink: #e6edf3;
+      --muted: #9aa4b2;
+      --accent: #3b82f6;
+      --ok: #22c55e;
+      --bad: #ef4444;
+      --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: var(--font);
+      background: radial-gradient(900px 500px at 10% 0%, #1e3a5f 0%, transparent 55%), var(--bg);
+      color: var(--ink);
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 20px; border-bottom: 1px solid var(--line); background: #15191e;
+    }
+    header a { color: #93c5fd; text-decoration: none; margin-left: 14px; font-size: 14px; }
+    header strong { font-size: 15px; }
+    header span { color: var(--muted); font-size: 12px; margin-left: 8px; }
+    main { max-width: 720px; margin: 28px auto; padding: 0 16px 40px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px;
+      display: grid; gap: 10px;
+    }
+    h1 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+    p.note { margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    label { font-size: 12px; color: var(--muted); }
+    input, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 8px;
+      padding: 10px 12px; background: #2b3139; color: var(--ink); font: inherit;
+    }
+    input:focus, textarea:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    button {
+      border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: 650; font: inherit;
+    }
+    .primary { background: var(--accent); color: #fff; }
+    .ghost { background: transparent; color: #93c5fd; border: 1px solid var(--line); }
+    .status { font-size: 13px; min-height: 1.2em; }
+    .status.ok { color: #86efac; }
+    .status.err { color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <strong>Company B Mail</strong>
+      <span>Mailpit · send to Guardian</span>
+    </div>
+    <nav>
+      <a href="/">Inbox</a>
+      <a href="/compose">Compose</a>
+      <a href="http://localhost:5173" target="_blank" rel="noreferrer">Guardian Mail</a>
+      <a href="http://localhost:5174" target="_blank" rel="noreferrer">SOC</a>
+    </nav>
+  </header>
+  <main>
+    <form class="card" id="form">
+      <h1>Compose</h1>
+      <p class="note">
+        Saves a copy in this Mailpit inbox, then <strong>Releases</strong> it through Guardian Postfix
+        (milter scan) to the recipient. Default recipient is the Guardian demo user.
+      </p>
+      <label>From</label>
+      <input id="from" value="receiver@company-b.test" required />
+      <label>To (Guardian)</label>
+      <input id="to" value="user@example.com" required />
+      <label>Subject</label>
+      <input id="subject" value="Hello from Company B" required />
+      <label>Message</label>
+      <textarea id="body" rows="12" required>Hi Guardian team — this message was sent from the Company B (Mailpit) side.</textarea>
+      <div class="row">
+        <button class="primary" type="submit">Send &amp; release to Guardian</button>
+        <button class="ghost" type="button" onclick="location.href='/'">Back to inbox</button>
+      </div>
+      <div class="status" id="status"></div>
+    </form>
+  </main>
+  <script>
+    const statusEl = document.getElementById("status");
+    function setStatus(msg, ok) {
+      statusEl.textContent = msg;
+      statusEl.className = "status " + (ok ? "ok" : "err");
+    }
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setStatus("Sending into Mailpit…", true);
+      const from = document.getElementById("from").value.trim();
+      const to = document.getElementById("to").value.trim();
+      const subject = document.getElementById("subject").value.trim();
+      const text = document.getElementById("body").value;
+      try {
+        const sendRes = await fetch("/api/v1/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            From: { Email: from, Name: "Company B" },
+            To: [{ Email: to }],
+            Subject: subject,
+            Text: text,
+          }),
+        });
+        const sendBody = await sendRes.text();
+        if (!sendRes.ok) throw new Error("Mailpit send failed: " + sendBody);
+        let parsed = {};
+        try { parsed = JSON.parse(sendBody); } catch (_) {}
+        const id = parsed.ID || parsed.Id || parsed.id;
+        if (!id) throw new Error("Mailpit did not return a message ID: " + sendBody);
+        setStatus("Releasing through Guardian SMTP…", true);
+        const relRes = await fetch("/api/v1/message/" + encodeURIComponent(id) + "/release", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ To: [to] }),
+        });
+        const relText = await relRes.text();
+        if (!relRes.ok) {
+          // Some Mailpit builds expect lowercase "to"
+          const relRes2 = await fetch("/api/v1/message/" + encodeURIComponent(id) + "/release", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: [to] }),
+          });
+          const relText2 = await relRes2.text();
+          if (!relRes2.ok) throw new Error("Release failed: " + relText + " / " + relText2);
+        }
+        setStatus("Sent. Open Inbox to see the copy, then check Guardian Mail / SOC Mail flow.", true);
+      } catch (err) {
+        setStatus(String(err.message || err), false);
+      }
+    });
+  </script>
+</body>
+</html>
